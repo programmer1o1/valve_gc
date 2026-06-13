@@ -68,6 +68,15 @@ public:
         CMsgSOSingleObject &destroy,
         CMsgGCItemCustomizationNotification &notification);
 
+    const CSOEconItem *GetItem(uint64_t itemId) const;
+    const ItemSchema &GetItemSchema() const { return m_itemSchema; }
+
+    bool TradeUp(const std::vector<uint64_t> &inputItemIds,
+        std::vector<CMsgSOSingleObject> &destroyItems,
+        CMsgSOSingleObject &newItem,
+        CMsgGCItemCustomizationNotification &notification,
+        CSOEconItem **outCraftedItem = nullptr);
+
     enum class StorageResult
     {
         Success,
