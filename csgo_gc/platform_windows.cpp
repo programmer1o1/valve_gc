@@ -287,4 +287,13 @@ int64_t FileModificationTime(const char *path)
     return static_cast<int64_t>((ft.QuadPart - 116444736000000000ULL) / 10000000ULL);
 }
 
+uintptr_t ModuleBase(std::string_view moduleName)
+{
+    std::string name;
+    name.assign(moduleName);
+    name.append(".dll");
+    HMODULE mod = GetModuleHandleA(name.c_str());
+    return reinterpret_cast<uintptr_t>(mod);
+}
+
 } // namespace Platform

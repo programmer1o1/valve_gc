@@ -520,4 +520,28 @@ int64_t FileModificationTime(const char *path)
     return static_cast<int64_t>(st.st_mtime);
 }
 
+uintptr_t ModuleBase(std::string_view moduleName)
+{
+    ModuleInfo info;
+#if defined(__APPLE__)
+    std::string primary;
+    primary.assign(moduleName);
+    primary.append(".dylib");
+    if (!GetModuleInfo(primary, info))
+        return 0;
+#else
+    std::string primary;
+    primary.assign(moduleName);
+    primary.append("_client.so");
+    if (!GetModuleInfo(primary, info))
+    {
+        primary.assign(moduleName);
+        primary.append(".so");
+        if (!GetModuleInfo(primary, info))
+            return 0;
+    }
+#endif
+    return reinterpret_cast<uintptr_t>(info.baseAddress);
+}
+
 } // namespace Platform

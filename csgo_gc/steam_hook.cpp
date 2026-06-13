@@ -219,36 +219,66 @@ static CreateInterfaceFn s_engineFactory;
 static IGameEventManager2 *s_gameEventManager;
 static IVEngineClient *s_engineClient;
 
+// Returns the local player's userId (CS:GO vtable path), or 0 on failure.
+static int GetLocalPlayerUserIdCSGO()
+{
+    if (!s_engineClient)
+        return 0;
+    int localEnt = s_engineClient->GetLocalPlayer();
+    if (localEnt <= 0)
+        return 0;
+    PlayerInfo info{};
+    if (!s_engineClient->GetPlayerInfo(localEnt, &info) || info.userId <= 0)
+        return 0;
+    return info.userId;
+}
+
+// CS2: read local player slot from engine2's INetworkGameClient via memory offsets.
+// The slot is what CS2 puts in the "userid" field of Source1LegacyGameEvents.
+static int GetLocalPlayerUserIdCS2()
+{
+    const GameProfile &profile = GetGameProfile();
+    if (!profile.networkGameClientOffset)
+        return 0;
+
+    uintptr_t engineBase = Platform::ModuleBase("engine2");
+    if (!engineBase)
+        return 0;
+
+    // INetworkGameClient* lives at engine2_base + dwNetworkGameClient
+    uintptr_t netClientPtrAddr = engineBase + profile.networkGameClientOffset;
+    uintptr_t netClient = *reinterpret_cast<uintptr_t *>(netClientPtrAddr);
+    if (!netClient)
+        return 0;
+
+    // local player slot at INetworkGameClient + dwNetworkGameClient_localPlayer
+    int slot = *reinterpret_cast<int *>(netClient + profile.networkGameClientLocalPlayer);
+    return slot;
+}
+
+static int GetLocalPlayerUserId()
+{
+    return s_engineClient ? GetLocalPlayerUserIdCSGO() : GetLocalPlayerUserIdCS2();
+}
+
 class ClientGameEventListener final : public IGameEventListener2
 {
 public:
     void FireGameEvent(IGameEvent *event) override
     {
-        if (!event || !s_clientGC || !s_engineClient)
-        {
+        if (!event || !s_clientGC)
             return;
-        }
 
         const char *eventName = event->GetName();
         if (!strcmp(eventName, "round_start"))
         {
-            int localPlayer = s_engineClient->GetLocalPlayer();
-            if (localPlayer <= 0)
-            {
+            int userId = GetLocalPlayerUserId();
+            if (userId <= 0)
                 return;
-            }
 
-            PlayerInfo playerInfo{};
-            if (!s_engineClient->GetPlayerInfo(localPlayer, &playerInfo) || playerInfo.userId <= 0)
-            {
-                return;
-            }
-
-            Platform::Print("Listener syncing local music kit state on round_start: userid=%d\n", playerInfo.userId);
+            Platform::Print("Listener syncing local music kit state on round_start: userid=%d\n", userId);
             s_clientGC->m_gc.PostToGC(GCEvent::SyncLocalPlayerMusicKitState,
-                0,
-                &playerInfo.userId,
-                sizeof(playerInfo.userId));
+                0, &userId, sizeof(userId));
 
             // hot-reload inventory if inventory.txt was modified since last check
             static int64_t s_lastInventoryMtime = Platform::FileModificationTime("csgo_gc/inventory.txt");
@@ -269,26 +299,14 @@ public:
         }
 
         if (strcmp(eventName, "round_mvp"))
-        {
             return;
-        }
 
-        int localPlayer = s_engineClient->GetLocalPlayer();
-        if (localPlayer <= 0)
-        {
+        int userId = GetLocalPlayerUserId();
+        if (userId <= 0)
             return;
-        }
 
-        PlayerInfo playerInfo{};
-        if (!s_engineClient->GetPlayerInfo(localPlayer, &playerInfo))
-        {
+        if (event->GetInt("userid") != userId)
             return;
-        }
-
-        if (event->GetInt("userid") != playerInfo.userId)
-        {
-            return;
-        }
 
         int musickitmvps = event->GetInt("musickitmvps");
         if (musickitmvps <= 0)
@@ -302,14 +320,12 @@ public:
         }
 
         Platform::Print("Listener saw local round_mvp: userid=%d reason=%d musickitmvps=%d\n",
-            playerInfo.userId,
+            userId,
             event->GetInt("reason"),
             musickitmvps);
 
         s_clientGC->m_gc.PostToGC(GCEvent::SyncLocalPlayerMusicKitState,
-            0,
-            &playerInfo.userId,
-            sizeof(playerInfo.userId));
+            0, &userId, sizeof(userId));
         s_clientGC->m_gc.PostToGC(GCEvent::LocalPlayerRoundMVP, 0, nullptr, 0);
     }
 
@@ -377,12 +393,9 @@ static void InitializeClientGameInterfaces()
 
     if (profile.gameEventManagerVersion)
         s_gameEventManager = reinterpret_cast<IGameEventManager2 *>(s_engineFactory(GameEventManagerVersion(), nullptr));
-    // CS2: Source2EngineToClient001 has a different vtable — skip until mapped
+    // CS:GO uses IVEngineClient vtable; CS2 leaves this null and uses offset-based player lookup
     if (profile.engineClientVersion)
         s_engineClient = reinterpret_cast<IVEngineClient *>(s_engineFactory(VEngineClientVersion(), nullptr));
-    // game event listeners require engineClient for local player lookup; skip for CS2
-    if (!s_engineClient)
-        s_gameEventManager = nullptr;
 }
 
 static void UpdateGameEventListeners()

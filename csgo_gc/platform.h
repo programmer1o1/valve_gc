@@ -40,4 +40,8 @@ bool PatchServerBrowserAppId(uint32_t appId);
 // returns the file's last-modification time as a Unix timestamp, or -1 on error
 int64_t FileModificationTime(const char *path);
 
+// returns the base address of a loaded module, or 0 on failure
+// module name uses the same platform-agnostic format as ModuleFactory
+uintptr_t ModuleBase(std::string_view moduleName);
+
 } // namespace Platform
