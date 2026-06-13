@@ -85,13 +85,35 @@ public:
         EGCItemCustomizationNotification notificationType;
         uint64_t affectedContainerId;
         StorageResult outcome;
-        
+
         bool Succeeded() const { return outcome == StorageResult::Success; }
         bool ReachedCapacity() const { return outcome == StorageResult::CapacityExceeded; }
     };
 
     StorageTransaction DepositItemToStorage(uint64_t storageId, uint64_t itemId);
     StorageTransaction WithdrawItemFromStorage(uint64_t storageId, uint64_t itemId);
+
+    enum class CounterSwapStatus
+    {
+        Completed,
+        ToolMissing,
+        WeaponMissing,
+        CounterAttributeAbsent
+    };
+
+    struct CounterSwapResult
+    {
+        CounterSwapStatus status;
+        CMsgSOSingleObject toolRemoval;
+        CMsgSOSingleObject weaponAUpdate;
+        CMsgSOSingleObject weaponBUpdate;
+        uint64_t weaponAId;
+        uint64_t weaponBId;
+
+        bool IsValid() const { return status == CounterSwapStatus::Completed; }
+    };
+
+    CounterSwapResult PerformCounterSwap(uint64_t toolId, uint64_t weaponAId, uint64_t weaponBId);
 
     // returns the item id and adds the item to the provided CMsgSOMultipleObjects
     // on failure returns 0 and does nothing
@@ -153,6 +175,9 @@ private:
     void EmbedStorageReference(CSOEconItem &item, uint64_t storageId);
     void StripStorageReference(CSOEconItem &item);
     bool ModifyStorageCounter(CSOEconItem &storage, int delta);
+
+    uint32_t* GetKillCounterPtr(CSOEconItem &weapon);
+    void ConsumeToolItem(uint64_t toolId, CMsgSOSingleObject &removalMsg);
 
     const uint64_t m_steamId;
     ItemSchema m_itemSchema;

@@ -1088,15 +1088,15 @@ bool Inventory::RemoveItemName(uint64_t itemId,
 Inventory::StorageItemPair Inventory::ResolveStorageItems(uint64_t storageId, uint64_t targetId)
 {
     StorageItemPair result{ nullptr, nullptr };
-    
+
     auto storageIt = m_items.find(storageId);
     auto targetIt = m_items.find(targetId);
-    
+
     if (storageIt != m_items.end())
         result.storage = &storageIt->second;
     if (targetIt != m_items.end())
         result.target = &targetIt->second;
-    
+
     return result;
 }
 
@@ -1104,24 +1104,24 @@ void Inventory::EmbedStorageReference(CSOEconItem &item, uint64_t storageId)
 {
     auto *attrLow = item.add_attribute();
     auto *attrHigh = item.add_attribute();
-    
+
     attrLow->set_def_index(ItemSchema::AttributeCasketIdLow);
     attrHigh->set_def_index(ItemSchema::AttributeCasketIdHigh);
-    
+
     m_itemSchema.SetAttributeUint32(attrLow, storageId & 0xFFFFFFFF);
     m_itemSchema.SetAttributeUint32(attrHigh, storageId >> 32);
-    
+
     item.clear_equipped_state();
 }
 
 void Inventory::StripStorageReference(CSOEconItem &item)
 {
     auto *attrs = item.mutable_attribute();
-    
+
     for (int i = attrs->size() - 1; i >= 0; --i)
     {
         uint32_t idx = attrs->Get(i).def_index();
-        bool isStorageAttr = (idx == ItemSchema::AttributeCasketIdLow || 
+        bool isStorageAttr = (idx == ItemSchema::AttributeCasketIdLow ||
                               idx == ItemSchema::AttributeCasketIdHigh);
         if (isStorageAttr)
             attrs->DeleteSubrange(i, 1);
@@ -1131,7 +1131,7 @@ void Inventory::StripStorageReference(CSOEconItem &item)
 bool Inventory::ModifyStorageCounter(CSOEconItem &storage, int delta)
 {
     int countIdx = -1, dateIdx = -1;
-    
+
     for (int i = 0; i < storage.attribute_size(); ++i)
     {
         switch (storage.attribute(i).def_index())
@@ -1144,24 +1144,24 @@ bool Inventory::ModifyStorageCounter(CSOEconItem &storage, int delta)
             break;
         }
     }
-    
+
     if (countIdx < 0) return false;
-    
+
     auto *countAttr = storage.mutable_attribute(countIdx);
     int32_t current = static_cast<int32_t>(m_itemSchema.AttributeUint32(countAttr));
     int32_t updated = current + delta;
-    
+
     if (updated < 0 || updated > 1000)
         return false;
-    
+
     m_itemSchema.SetAttributeUint32(countAttr, updated);
-    
+
     if (dateIdx >= 0)
     {
         auto *dateAttr = storage.mutable_attribute(dateIdx);
         m_itemSchema.SetAttributeUint32(dateAttr, static_cast<uint32_t>(time(nullptr)));
     }
-    
+
     return true;
 }
 
@@ -1169,41 +1169,41 @@ Inventory::StorageTransaction Inventory::DepositItemToStorage(uint64_t storageId
 {
     StorageTransaction tx{};
     tx.affectedContainerId = storageId;
-    
+
     auto [storage, target] = ResolveStorageItems(storageId, itemId);
-    
+
     if (!storage)
     {
         tx.outcome = StorageResult::ContainerNotFound;
         return tx;
     }
-    
+
     if (!target)
     {
         tx.outcome = StorageResult::ItemNotFound;
         return tx;
     }
-    
+
     if (storage->def_index() != ItemSchema::ItemCasket)
     {
         tx.outcome = StorageResult::InvalidContainerType;
         return tx;
     }
-    
+
     if (!ModifyStorageCounter(*storage, +1))
     {
         tx.outcome = StorageResult::CapacityExceeded;
         tx.notificationType = k_EGCItemCustomizationNotification_CasketTooFull;
         return tx;
     }
-    
+
     EmbedStorageReference(*target, storageId);
-    
+
     ToSingleObject(tx.itemData, *target);
     ToSingleObject(tx.containerData, *storage);
     tx.notificationType = k_EGCItemCustomizationNotification_CasketAdded;
     tx.outcome = StorageResult::Success;
-    
+
     return tx;
 }
 
@@ -1211,41 +1211,131 @@ Inventory::StorageTransaction Inventory::WithdrawItemFromStorage(uint64_t storag
 {
     StorageTransaction tx{};
     tx.affectedContainerId = storageId;
-    
+
     auto [storage, target] = ResolveStorageItems(storageId, itemId);
-    
+
     if (!storage)
     {
         tx.outcome = StorageResult::ContainerNotFound;
         return tx;
     }
-    
+
     if (!target)
     {
         tx.outcome = StorageResult::ItemNotFound;
         return tx;
     }
-    
+
     if (storage->def_index() != ItemSchema::ItemCasket)
     {
         tx.outcome = StorageResult::InvalidContainerType;
         return tx;
     }
-    
+
     if (!ModifyStorageCounter(*storage, -1))
     {
         tx.outcome = StorageResult::InternalError;
         return tx;
     }
-    
+
     StripStorageReference(*target);
-    
+
     ToSingleObject(tx.itemData, *target);
     ToSingleObject(tx.containerData, *storage);
     tx.notificationType = k_EGCItemCustomizationNotification_CasketRemoved;
     tx.outcome = StorageResult::Success;
-    
+
     return tx;
+}
+
+uint32_t* Inventory::GetKillCounterPtr(CSOEconItem &weapon)
+{
+    int attrCount = weapon.attribute_size();
+    for (int i = 0; i < attrCount; ++i)
+    {
+        auto *attr = weapon.mutable_attribute(i);
+        if (attr->def_index() != ItemSchema::AttributeKillEater)
+            continue;
+
+        static thread_local uint32_t valueHolder;
+        valueHolder = m_itemSchema.AttributeUint32(attr);
+        return &valueHolder;
+    }
+    return nullptr;
+}
+
+void Inventory::ConsumeToolItem(uint64_t toolId, CMsgSOSingleObject &removalMsg)
+{
+    if (!GetConfig().DestroyUsedItems())
+        return;
+
+    auto it = m_items.find(toolId);
+    if (it == m_items.end())
+        return;
+
+    DestroyItem(it, removalMsg);
+}
+
+Inventory::CounterSwapResult Inventory::PerformCounterSwap(uint64_t toolId, uint64_t weaponAId, uint64_t weaponBId)
+{
+    CounterSwapResult result{};
+    result.weaponAId = weaponAId;
+    result.weaponBId = weaponBId;
+
+    auto itA = m_items.find(weaponAId);
+    auto itB = m_items.find(weaponBId);
+
+    bool weaponsExist = (itA != m_items.end()) && (itB != m_items.end());
+    if (!weaponsExist)
+    {
+        result.status = CounterSwapStatus::WeaponMissing;
+        return result;
+    }
+
+    CSOEconItem &weaponA = itA->second;
+    CSOEconItem &weaponB = itB->second;
+
+    CSOEconItemAttribute *attrA = nullptr;
+    CSOEconItemAttribute *attrB = nullptr;
+
+    for (int i = 0; i < weaponA.attribute_size(); ++i)
+    {
+        if (weaponA.attribute(i).def_index() == ItemSchema::AttributeKillEater)
+        {
+            attrA = weaponA.mutable_attribute(i);
+            break;
+        }
+    }
+
+    for (int i = 0; i < weaponB.attribute_size(); ++i)
+    {
+        if (weaponB.attribute(i).def_index() == ItemSchema::AttributeKillEater)
+        {
+            attrB = weaponB.mutable_attribute(i);
+            break;
+        }
+    }
+
+    bool bothHaveCounters = attrA && attrB;
+    if (!bothHaveCounters)
+    {
+        result.status = CounterSwapStatus::CounterAttributeAbsent;
+        return result;
+    }
+
+    uint32_t valA = m_itemSchema.AttributeUint32(attrA);
+    uint32_t valB = m_itemSchema.AttributeUint32(attrB);
+
+    m_itemSchema.SetAttributeUint32(attrA, valB);
+    m_itemSchema.SetAttributeUint32(attrB, valA);
+
+    ConsumeToolItem(toolId, result.toolRemoval);
+
+    ToSingleObject(result.weaponAUpdate, weaponA);
+    ToSingleObject(result.weaponBUpdate, weaponB);
+    result.status = CounterSwapStatus::Completed;
+
+    return result;
 }
 
 uint64_t Inventory::PurchaseItem(uint32_t defIndex, std::vector<CMsgSOSingleObject> &update)
