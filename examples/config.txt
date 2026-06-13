@@ -51,8 +51,13 @@
 
 // steam related options
 
+// which game to target: "csgo" (default) or "cs2"
+// cs2 support is a work in progress — engine interface strings still need to be determined
+"game"	"csgo"
+
 // specifies what app id to use for the game. csgo/steam.inf is automatically modified if necessary, and the SteamAppId
 // environment variable is set. when using csgo_gc, this is the only thing you need to modify to switch app ids
+// defaults to 4465480 for csgo and 730 for cs2
 "appid_override"	"4465480" // new csgo appid
 
 // only show servers with the "csgo_gc" tag in the server browser; set to 0 to see all servers

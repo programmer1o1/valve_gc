@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "gc_client.h"
+#include "game_profile.h"
 #include "graffiti.h"
 #include "keyvalue.h"
 #include "networking_shared.h"
@@ -412,12 +413,13 @@ void ClientGC::BuildMatchmakingHello(CMsgGCCStrike15_v2_MatchmakingGC2ClientHell
     message.mutable_global_stats()->set_main_post_url("");
 
     // bullshit
-    message.mutable_global_stats()->set_required_appid_version(13857);
-    message.mutable_global_stats()->set_pricesheet_version(1680057676); // mikkotodo revisit
+    const GameProfile &profile = GetGameProfile();
+    message.mutable_global_stats()->set_required_appid_version(profile.requiredAppIdVersion);
+    message.mutable_global_stats()->set_pricesheet_version(profile.pricesheetVersion);
     message.mutable_global_stats()->set_twitch_streams_version(2);
-    message.mutable_global_stats()->set_active_tournament_eventid(20);
+    message.mutable_global_stats()->set_active_tournament_eventid(profile.activeTournamentEventId);
     message.mutable_global_stats()->set_active_survey_id(0);
-    message.mutable_global_stats()->set_required_appid_version2(13862); // csgo s2
+    message.mutable_global_stats()->set_required_appid_version2(profile.requiredAppIdVersion2);
 
     message.set_vac_banned(GetConfig().VacBanned());
     message.mutable_commendation()->set_cmd_friendly(GetConfig().CommendedFriendly());

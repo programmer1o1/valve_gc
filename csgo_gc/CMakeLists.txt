@@ -4,6 +4,7 @@ add_library(csgo_gc SHARED
     appid.cpp
     case_opening.cpp
     config.cpp
+    game_profile.cpp
     gc_client.cpp
     gc_message.cpp
     gc_server.cpp

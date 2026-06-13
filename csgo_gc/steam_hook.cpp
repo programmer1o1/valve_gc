@@ -3,6 +3,7 @@
 #include "stdafx.h"
 #include "steam_hook.h"
 #include "appid.h"
+#include "game_profile.h"
 #include "gc_client.h"
 #include "gc_server.h"
 #include "platform.h"
@@ -210,8 +211,8 @@ public:
 
 using CreateInterfaceFn = void *(*)(const char *name, int *returnCode);
 
-constexpr const char *GameEventManagerVersion = "GAMEEVENTSMANAGER002";
-constexpr const char *VEngineClientVersion = "VEngineClient014";
+static const char *GameEventManagerVersion() { return GetGameProfile().gameEventManagerVersion; }
+static const char *VEngineClientVersion() { return GetGameProfile().engineClientVersion; }
 constexpr int EventDebugIdInit = 42;
 
 static CreateInterfaceFn s_engineFactory;
@@ -366,15 +367,18 @@ static void InitializeClientGameInterfaces()
         return;
     }
 
-    s_engineFactory = reinterpret_cast<CreateInterfaceFn>(Platform::ModuleFactory("engine"));
+    const GameProfile &profile = GetGameProfile();
+    s_engineFactory = reinterpret_cast<CreateInterfaceFn>(Platform::ModuleFactory(profile.engineModule));
     if (!s_engineFactory)
     {
-        Platform::Print("engine CreateInterface not found\n");
+        Platform::Print("%s CreateInterface not found\n", profile.engineModule);
         return;
     }
 
-    s_gameEventManager = reinterpret_cast<IGameEventManager2 *>(s_engineFactory(GameEventManagerVersion, nullptr));
-    s_engineClient = reinterpret_cast<IVEngineClient *>(s_engineFactory(VEngineClientVersion, nullptr));
+    if (profile.gameEventManagerVersion)
+        s_gameEventManager = reinterpret_cast<IGameEventManager2 *>(s_engineFactory(GameEventManagerVersion(), nullptr));
+    if (profile.engineClientVersion)
+        s_engineClient = reinterpret_cast<IVEngineClient *>(s_engineFactory(VEngineClientVersion(), nullptr));
 }
 
 static void UpdateGameEventListeners()

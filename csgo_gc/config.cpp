@@ -22,6 +22,13 @@ GCConfig::GCConfig()
 
     m_logOutput = config.GetNumber("log_output", m_logOutput);
 
+    std::string_view game = config.GetString("game");
+    if (game == "cs2")
+    {
+        m_game = "cs2";
+        m_appIdOverride = 730; // CS2 default; override below if set explicitly
+    }
+
     m_appIdOverride = config.GetNumber("appid_override", m_appIdOverride);
     m_showCsgoGCServersOnly = config.GetNumber("show_csgo_gc_servers_only", m_showCsgoGCServersOnly);
 

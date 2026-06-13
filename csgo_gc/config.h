@@ -26,6 +26,7 @@ public:
     LogOutput GetLogOutput() const { return m_logOutput; }
 
     // options used by steam hook
+    std::string_view Game() const { return m_game; }
     uint32_t AppIdOverride() const { return m_appIdOverride; }
     bool ShowCsgoGCServersOnly() const { return m_showCsgoGCServersOnly; }
 
@@ -54,6 +55,8 @@ public:
 
 private:
     LogOutput m_logOutput{ LogOutputConsole };
+
+    std::string m_game{ "csgo" };
 
     // actually default to 4465480 instead of 730, people are going to use old configs
     // and then wonder why the game doesn't work and open an issue on github otherwise
