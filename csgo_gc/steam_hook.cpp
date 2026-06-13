@@ -261,6 +261,12 @@ public:
             return;
         }
 
+        if (!strcmp(eventName, "round_end"))
+        {
+            s_clientGC->m_gc.PostToGC(GCEvent::RoundEnd, 0, nullptr, 0);
+            return;
+        }
+
         if (strcmp(eventName, "round_mvp"))
         {
             return;
@@ -350,6 +356,7 @@ static ClientGameEventListener s_clientGameEventListener;
 static ServerRoundMVPEventListener s_serverRoundMVPEventListener;
 static bool s_clientRoundMVPListenerRegistered = false;
 static bool s_clientRoundStartListenerRegistered = false;
+static bool s_clientRoundEndListenerRegistered = false;
 static bool s_serverRoundMVPListenerRegistered = false;
 
 static void InitializeClientGameInterfaces()
@@ -408,22 +415,34 @@ static void UpdateGameEventListeners()
                 Platform::Print("Failed to register round_start listener\n");
             }
         }
+
+        if (!s_clientRoundEndListenerRegistered)
+        {
+            if (s_gameEventManager->AddListener(&s_clientGameEventListener, "round_end", false))
+            {
+                s_clientRoundEndListenerRegistered = true;
+                Platform::Print("Registered round_end listener\n");
+            }
+            else
+            {
+                Platform::Print("Failed to register round_end listener\n");
+            }
+        }
     }
     else
     {
-        if (s_clientRoundMVPListenerRegistered || s_clientRoundStartListenerRegistered)
+        if (s_clientRoundMVPListenerRegistered || s_clientRoundStartListenerRegistered || s_clientRoundEndListenerRegistered)
         {
             s_gameEventManager->RemoveListener(&s_clientGameEventListener);
             if (s_clientRoundMVPListenerRegistered)
-            {
                 Platform::Print("Unregistered round_mvp listener\n");
-            }
             if (s_clientRoundStartListenerRegistered)
-            {
                 Platform::Print("Unregistered round_start listener\n");
-            }
+            if (s_clientRoundEndListenerRegistered)
+                Platform::Print("Unregistered round_end listener\n");
             s_clientRoundMVPListenerRegistered = false;
             s_clientRoundStartListenerRegistered = false;
+            s_clientRoundEndListenerRegistered = false;
         }
     }
 

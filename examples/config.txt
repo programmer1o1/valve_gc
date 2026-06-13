@@ -34,6 +34,18 @@
 // give a random skin drop at the end of each match (requires item schema with revolving_loot_lists)
 "enable_match_drops"	"1"
 
+// XP awarded per round (set to 0 to disable progression)
+"xp_per_round"	"150"
+
+// service medals / pins shown on your profile (space them out as numbered subkeys)
+// find def_indexes in items_game.txt under "items" -> item with the pin/medal name
+//"medals"
+//{
+//	"featured"	"1114"  // shown prominently; omit if you don't want a featured medal
+//	"1"	"1113"
+//	"2"	"1114"
+//}
+
 // steam related options
 
 // specifies what app id to use for the game. csgo/steam.inf is automatically modified if necessary, and the SteamAppId

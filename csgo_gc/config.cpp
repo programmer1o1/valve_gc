@@ -40,6 +40,21 @@ GCConfig::GCConfig()
 
     m_destroyUsedItems = config.GetNumber("destroy_used_items", m_destroyUsedItems);
     m_enableMatchDrops = config.GetNumber("enable_match_drops", m_enableMatchDrops);
+    m_xpPerRound = config.GetNumber("xp_per_round", m_xpPerRound);
+
+    const KeyValue *medals = config.GetSubkey("medals");
+    if (medals)
+    {
+        m_featuredMedalDefIndex = medals->GetNumber<uint32_t>("featured", 0);
+        for (const KeyValue &entry : *medals)
+        {
+            if (entry.Name() == "featured")
+                continue;
+            uint32_t defIndex = FromString<uint32_t>(entry.String());
+            if (defIndex)
+                m_medalDefIndexes.push_back(defIndex);
+        }
+    }
 
     const KeyValue *rarityWeights = config.GetSubkey("rarity_weights");
     if (rarityWeights)

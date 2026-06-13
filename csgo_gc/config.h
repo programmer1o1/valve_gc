@@ -38,6 +38,9 @@ public:
 
     bool DestroyUsedItems() const { return m_destroyUsedItems; }
     bool EnableMatchDrops() const { return m_enableMatchDrops; }
+    int XpPerRound() const { return m_xpPerRound; }
+    const std::vector<uint32_t> &MedalDefIndexes() const { return m_medalDefIndexes; }
+    uint32_t FeaturedMedalDefIndex() const { return m_featuredMedalDefIndex; }
 
     bool VacBanned() const { return m_vacBanned; }
     int CommendedFriendly() const { return m_commendedFriendly; }
@@ -65,6 +68,9 @@ private:
 
     bool m_destroyUsedItems{ true };
     bool m_enableMatchDrops{ true };
+    int m_xpPerRound{ 150 };
+    std::vector<uint32_t> m_medalDefIndexes;
+    uint32_t m_featuredMedalDefIndex{ 0 };
 
     bool m_vacBanned{ false };
     int m_commendedFriendly{ 0 };

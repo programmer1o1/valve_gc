@@ -57,6 +57,8 @@ private:
 
     void ReloadInventory();
     void HandleMatchEndRunRewardDrops();
+    void HandleRoundEnd();
+    void SendXpUpdate();
 
     void BuildMatchmakingHello(CMsgGCCStrike15_v2_MatchmakingGC2ClientHello &message);
     void BuildClientWelcome(CMsgClientWelcome &message, const CMsgCStrike15Welcome &csWelcome,
@@ -70,6 +72,10 @@ private:
     Inventory m_inventory;
     std::atomic<int32_t> m_localUserId{};
     std::atomic<int32_t> m_cachedMusicKitMVPs{ -1 };
+
+    // mutable XP/level so round-end progression works without restarting
+    uint32_t m_xpLevel{};
+    uint32_t m_xpPoints{};
 
     // microtransactions, we only have one going at a time
     uint64_t m_transactionId{};

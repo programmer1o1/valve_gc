@@ -528,16 +528,19 @@ bool Inventory::UnlockCrate(uint64_t crateId,
 
     ToSingleObject(newItem, item);
 
-    // set notification
+    // souvenir packages use a different notification so the game plays the right animation
+    bool isSouvenir = (crate->second.quality() == ItemSchema::QualityTournament);
     notification.add_item_id(item.id());
-    notification.set_request(k_EGCItemCustomizationNotification_UnlockCrate);
+    notification.set_request(isSouvenir
+        ? k_EGCItemCustomizationNotification_GenerateSouvenir
+        : k_EGCItemCustomizationNotification_UnlockCrate);
 
     // remove the crate
     if (GetConfig().DestroyUsedItems())
     {
         DestroyItem(crate, destroyCrate);
 
-        // remove the key if one was used (yes, we don't validate keys...)
+        // remove the key if one was used; souvenirs have no key so this is a no-op for them
         auto key = m_items.find(keyId);
         if (key != m_items.end())
         {

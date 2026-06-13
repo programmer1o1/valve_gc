@@ -18,6 +18,7 @@ enum class GCEvent
     SyncLocalPlayerMusicKitState, // sent to client gc from the main thread, buffer contains the local userid
     ClientSOCacheUnsubscribe, // sent to server gc when a client disconnects, id contains the steam id
     ReloadInventory, // sent to client gc when inventory.txt changes on disk
+    RoundEnd,        // sent to client gc when a round ends on the client
 };
 
 struct EventData

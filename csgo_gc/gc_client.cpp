@@ -49,6 +49,8 @@ static std::string GetCollectionName(const ItemSchema &schema, std::string_view 
 ClientGC::ClientGC(uint64_t steamId)
     : m_steamId{ steamId }
     , m_inventory{ steamId }
+    , m_xpLevel{ static_cast<uint32_t>(GetConfig().Level()) }
+    , m_xpPoints{ static_cast<uint32_t>(GetConfig().Xp()) }
 {
     // also called from ServerGC's constructor
     Graffiti::Initialize();
@@ -169,6 +171,10 @@ void ClientGC::HandleEvent(GCEvent type, uint64_t id, const std::vector<uint8_t>
 
     case GCEvent::ReloadInventory:
         ReloadInventory();
+        break;
+
+    case GCEvent::RoundEnd:
+        HandleRoundEnd();
         break;
 
     default:
@@ -381,8 +387,18 @@ void ClientGC::BuildMatchmakingHello(CMsgGCCStrike15_v2_MatchmakingGC2ClientHell
     message.mutable_commendation()->set_cmd_friendly(GetConfig().CommendedFriendly());
     message.mutable_commendation()->set_cmd_teaching(GetConfig().CommendedTeaching());
     message.mutable_commendation()->set_cmd_leader(GetConfig().CommendedLeader());
-    message.set_player_level(GetConfig().Level());
-    message.set_player_cur_xp(GetConfig().Xp());
+    message.set_player_level(m_xpLevel);
+    message.set_player_cur_xp(m_xpPoints);
+
+    const auto &medalDefIndexes = GetConfig().MedalDefIndexes();
+    if (!medalDefIndexes.empty())
+    {
+        auto *medals = message.mutable_medals();
+        for (uint32_t defIndex : medalDefIndexes)
+            medals->add_display_items_defidx(defIndex);
+        if (GetConfig().FeaturedMedalDefIndex())
+            medals->set_featured_display_item_defidx(GetConfig().FeaturedMedalDefIndex());
+    }
 }
 
 void ClientGC::BuildClientWelcome(CMsgClientWelcome &message, const CMsgCStrike15Welcome &csWelcome,
@@ -1162,4 +1178,32 @@ void ClientGC::HandleMatchEndRunRewardDrops()
     CMsgGCCStrike15_v2_MatchEndRewardDropsNotification dropNotif;
     dropNotif.mutable_iteminfo()->set_itemid(notification.item_id(0));
     SendMessageToGame(false, k_EMsgGCCStrike15_v2_MatchEndRewardDropsNotification, dropNotif);
+}
+
+void ClientGC::SendXpUpdate()
+{
+    CMsgGCCStrike15_v2_MatchmakingGC2ClientHello hello;
+    BuildMatchmakingHello(hello);
+    SendMessageToGame(false, k_EMsgGCCStrike15_v2_MatchmakingGC2ClientHello, hello);
+}
+
+void ClientGC::HandleRoundEnd()
+{
+    int xpPerRound = GetConfig().XpPerRound();
+    if (xpPerRound <= 0)
+        return;
+
+    constexpr uint32_t XpPerLevel = 5000;
+
+    m_xpPoints += static_cast<uint32_t>(xpPerRound);
+    if (m_xpPoints >= XpPerLevel)
+    {
+        m_xpPoints -= XpPerLevel;
+        m_xpLevel++;
+        Platform::Print("ClientGC: leveled up to %u\n", m_xpLevel);
+    }
+
+    Platform::Print("ClientGC: round end XP +%d -> level %u points %u\n",
+        xpPerRound, m_xpLevel, m_xpPoints);
+    SendXpUpdate();
 }
