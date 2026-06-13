@@ -1501,7 +1501,7 @@ bool Inventory::DropMatchItem(CMsgSOSingleObject &newItem, CMsgGCItemCustomizati
     CSOEconItem &item = CreateItem(temp);
     ToSingleObject(newItem, item);
 
-    notification.set_request(k_EGCItemCustomizationNotification_FoundInCrate);
+    notification.set_request(k_EGCItemCustomizationNotification_UnlockCrate);
     notification.add_item_id(item.id());
 
     Platform::Print("Inventory: gave match drop item %llu (def %u)\n", item.id(), item.def_index());
