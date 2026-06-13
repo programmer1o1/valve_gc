@@ -192,6 +192,7 @@ public:
 
     enum LoadoutSlot
     {
+        LoadoutSlotMusicKit = 54,
         LoadoutSlotGraffiti = 56
     };
 
