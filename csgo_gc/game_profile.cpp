@@ -14,17 +14,21 @@ const GameProfile g_profileCSGO = {
     .activeTournamentEventId = 20,
 };
 
-// CS2 interface strings are not yet confirmed — find them with:
-//   strings engine2.dll | grep -iE "GAMEEVENTSMANAGER|VEngineClient|EngineClient"
-// Once found, fill them in here.
+// Version data sourced from CDemoFileHeader in a real CS2 demo (PBDEMS2):
+//   network_protocol = 14165  (field 2)
+//   build_num        = 10772  (field 13)
+//
+// Interface strings still needed — on the Windows CS2 install run:
+//   strings "game\bin\win64\engine2.dll" | grep -iE "GAMEEVENTSMANAGER|EngineClient"
+// Then fill in gameEventManagerVersion and engineClientVersion below.
 const GameProfile g_profileCS2 = {
     .mode                   = GameMode::CS2,
     .appId                  = 730,
     .engineModule           = "engine2",
-    .gameEventManagerVersion = nullptr, // TODO: find from engine2.dll
-    .engineClientVersion    = nullptr, // TODO: find from engine2.dll
-    .requiredAppIdVersion   = 2000244, // CS2 client hello version
-    .requiredAppIdVersion2  = 0,
+    .gameEventManagerVersion = nullptr, // TODO: strings engine2.dll | grep GAMEEVENTSMANAGER
+    .engineClientVersion    = nullptr, // TODO: strings engine2.dll | grep EngineClient
+    .requiredAppIdVersion   = 14165,   // network_protocol from CDemoFileHeader
+    .requiredAppIdVersion2  = 10772,   // build_num from CDemoFileHeader
     .pricesheetVersion      = 0,
     .activeTournamentEventId = 0,
 };
