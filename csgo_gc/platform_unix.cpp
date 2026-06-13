@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
 
 #if defined(__APPLE__)
 #include <mach-o/dyld.h>
@@ -509,6 +510,14 @@ bool PatchServerBrowserAppId(uint32_t appId)
     }
 
     return false;
+}
+
+int64_t FileModificationTime(const char *path)
+{
+    struct stat st;
+    if (stat(path, &st) != 0)
+        return -1;
+    return static_cast<int64_t>(st.st_mtime);
 }
 
 } // namespace Platform

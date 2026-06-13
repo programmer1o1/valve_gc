@@ -16,6 +16,12 @@ public:
 
     void BuildCacheSubscription(CMsgSOCacheSubscribed &message, int level, bool server);
 
+    // re-reads inventory.txt in place; call BuildCacheSubscription afterwards to push to game
+    void Reload();
+
+    // creates a random drop item from the revolving loot lists and returns it
+    bool DropMatchItem(CMsgSOSingleObject &newItem, CMsgGCItemCustomizationNotification &notification);
+
     bool EquipItem(uint64_t itemId, uint32_t classId, uint32_t slotId, CMsgSOMultipleObjects &update);
 
     bool RemoveItem(uint64_t itemId, CMsgSOSingleObject &destroy);

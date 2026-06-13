@@ -138,6 +138,9 @@ public:
     // item creation: id and account id not set, needs to be done by the caller
     bool CreateItem(uint32_t defIndex, ItemOrigin origin, UnacknowledgedType unacknowledgedType, CSOEconItem &econItem) const;
 
+    // pick a random item from the revolving drop loot lists; returns false if none are loaded
+    bool CreateDropItem(Random &random, CSOEconItem &item) const;
+
     // trade-up helpers
     const ItemInfo *ItemInfoByDefIndex(uint32_t defIndex) const;
     const PaintKitInfo *PaintKitInfoByDefIndex(uint32_t defIndex) const;

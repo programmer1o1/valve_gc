@@ -55,6 +55,9 @@ private:
     void HandleCounterSwapRequest(GCMessageRead &messageRead);
     void BroadcastSwapOutcome(const Inventory::CounterSwapResult &outcome);
 
+    void ReloadInventory();
+    void HandleMatchEndRunRewardDrops();
+
     void BuildMatchmakingHello(CMsgGCCStrike15_v2_MatchmakingGC2ClientHello &message);
     void BuildClientWelcome(CMsgClientWelcome &message, const CMsgCStrike15Welcome &csWelcome,
         const CMsgGCCStrike15_v2_MatchmakingGC2ClientHello &matchmakingHello);

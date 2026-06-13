@@ -39,6 +39,7 @@ GCConfig::GCConfig()
     }
 
     m_destroyUsedItems = config.GetNumber("destroy_used_items", m_destroyUsedItems);
+    m_enableMatchDrops = config.GetNumber("enable_match_drops", m_enableMatchDrops);
 
     const KeyValue *rarityWeights = config.GetSubkey("rarity_weights");
     if (rarityWeights)

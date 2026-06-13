@@ -248,6 +248,16 @@ public:
                 0,
                 &playerInfo.userId,
                 sizeof(playerInfo.userId));
+
+            // hot-reload inventory if inventory.txt was modified since last check
+            static int64_t s_lastInventoryMtime = Platform::FileModificationTime("csgo_gc/inventory.txt");
+            int64_t currentMtime = Platform::FileModificationTime("csgo_gc/inventory.txt");
+            if (currentMtime > 0 && currentMtime != s_lastInventoryMtime)
+            {
+                s_lastInventoryMtime = currentMtime;
+                Platform::Print("Listener: inventory.txt changed, requesting reload\n");
+                s_clientGC->m_gc.PostToGC(GCEvent::ReloadInventory, 0, nullptr, 0);
+            }
             return;
         }
 

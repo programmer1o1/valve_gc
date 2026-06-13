@@ -167,6 +167,10 @@ void ClientGC::HandleEvent(GCEvent type, uint64_t id, const std::vector<uint8_t>
         }
         break;
 
+    case GCEvent::ReloadInventory:
+        ReloadInventory();
+        break;
+
     default:
         assert(false);
         break;
@@ -240,6 +244,10 @@ void ClientGC::HandleMessage(uint32_t type, const void *data, uint32_t size)
 
         case k_EMsgGCStatTrakSwap:
             HandleCounterSwapRequest(messageRead);
+            break;
+
+        case k_EMsgGCCStrike15_v2_MatchEndRunRewardDrops:
+            HandleMatchEndRunRewardDrops();
             break;
 
         default:
@@ -1122,4 +1130,36 @@ void ClientGC::HandleCounterSwapRequest(GCMessageRead &messageRead)
     );
 
     BroadcastSwapOutcome(outcome);
+}
+
+void ClientGC::ReloadInventory()
+{
+    m_inventory.Reload();
+    RefreshCachedMusicKitMVPs();
+
+    CMsgSOCacheSubscribed cacheMsg;
+    m_inventory.BuildCacheSubscription(cacheMsg, GetConfig().Level(), true);
+    SendMessageToGame(false, k_ESOMsg_CacheSubscribed, cacheMsg);
+
+    Platform::Print("ClientGC: inventory reloaded and SO cache resent\n");
+}
+
+void ClientGC::HandleMatchEndRunRewardDrops()
+{
+    if (!GetConfig().EnableMatchDrops())
+    {
+        Platform::Print("ClientGC: match drops disabled, skipping\n");
+        return;
+    }
+
+    CMsgSOSingleObject newItem;
+    CMsgGCItemCustomizationNotification notification;
+    if (!m_inventory.DropMatchItem(newItem, notification))
+        return;
+
+    SendMessageToGame(true, k_ESOMsg_Create, newItem);
+
+    CMsgGCCStrike15_v2_MatchEndRewardDropsNotification dropNotif;
+    dropNotif.mutable_iteminfo()->set_itemid(notification.item_id(0));
+    SendMessageToGame(false, k_EMsgGCCStrike15_v2_MatchEndRewardDropsNotification, dropNotif);
 }

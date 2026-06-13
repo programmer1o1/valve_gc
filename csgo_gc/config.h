@@ -37,6 +37,7 @@ public:
     int DangerZoneWins() const { return m_dangerZoneWins; }
 
     bool DestroyUsedItems() const { return m_destroyUsedItems; }
+    bool EnableMatchDrops() const { return m_enableMatchDrops; }
 
     bool VacBanned() const { return m_vacBanned; }
     int CommendedFriendly() const { return m_commendedFriendly; }
@@ -63,6 +64,7 @@ private:
     int m_dangerZoneWins{ 0 };
 
     bool m_destroyUsedItems{ true };
+    bool m_enableMatchDrops{ true };
 
     bool m_vacBanned{ false };
     int m_commendedFriendly{ 0 };

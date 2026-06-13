@@ -275,4 +275,16 @@ bool PatchServerBrowserAppId(uint32_t appId)
     return false;
 }
 
+int64_t FileModificationTime(const char *path)
+{
+    WIN32_FILE_ATTRIBUTE_DATA data;
+    if (!GetFileAttributesExA(path, GetFileExInfoStandard, &data))
+        return -1;
+    ULARGE_INTEGER ft;
+    ft.LowPart = data.ftLastWriteTime.dwLowDateTime;
+    ft.HighPart = data.ftLastWriteTime.dwHighDateTime;
+    // convert Windows 100ns intervals from 1601 to Unix seconds from 1970
+    return static_cast<int64_t>((ft.QuadPart - 116444736000000000ULL) / 10000000ULL);
+}
+
 } // namespace Platform

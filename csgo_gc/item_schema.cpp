@@ -412,6 +412,32 @@ const LootList *ItemSchema::GetCrateLootList(uint32_t crateDefIndex) const
     return &lootListSearch->second;
 }
 
+static void CollectDropCandidates(const LootList &lootList, std::vector<const LootListItem *> &out)
+{
+    for (const LootList *sub : lootList.subLists)
+        CollectDropCandidates(*sub, out);
+    for (const LootListItem &entry : lootList.items)
+        if (entry.type == LootListItemPaintable && entry.itemInfo && entry.paintKitInfo)
+            out.push_back(&entry);
+}
+
+bool ItemSchema::CreateDropItem(Random &random, CSOEconItem &item) const
+{
+    if (m_revolvingLootLists.empty())
+        return false;
+
+    std::vector<const LootListItem *> candidates;
+    for (const auto &[index, lootList] : m_revolvingLootLists)
+        CollectDropCandidates(lootList, candidates);
+
+    if (candidates.empty())
+        return false;
+
+    const LootListItem *chosen = candidates[random.Integer<size_t>(0, candidates.size() - 1)];
+    return CreateItemFromLootListItem(random, *chosen, false,
+        ItemOriginPurchased, UnacknowledgedDropped, item);
+}
+
 bool ItemSchema::CreateItemFromLootListItem(Random &random,
     const LootListItem &lootListItem,
     bool statTrak,

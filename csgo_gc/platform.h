@@ -37,4 +37,7 @@ bool PatchGraffitiPublicKey(std::string_view moduleName, const void *original, c
 // returns true if serverbrowser was loaded and we patched it
 bool PatchServerBrowserAppId(uint32_t appId);
 
+// returns the file's last-modification time as a Unix timestamp, or -1 on error
+int64_t FileModificationTime(const char *path);
+
 } // namespace Platform

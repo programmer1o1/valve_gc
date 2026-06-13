@@ -4,6 +4,7 @@
 #include "config.h"
 #include "gc_const.h"
 #include "keyvalue.h"
+#include "platform.h"
 #include "random.h"
 
 constexpr const char *InventoryFilePath = "csgo_gc/inventory.txt";
@@ -1476,6 +1477,35 @@ Inventory::CounterSwapResult Inventory::PerformCounterSwap(uint64_t toolId, uint
     result.status = CounterSwapStatus::Completed;
 
     return result;
+}
+
+void Inventory::Reload()
+{
+    WriteToFile();
+    m_items.clear();
+    m_defaultEquips.clear();
+    m_lastHighItemId = 0;
+    ReadFromFile();
+    Platform::Print("Inventory: reloaded from disk\n");
+}
+
+bool Inventory::DropMatchItem(CMsgSOSingleObject &newItem, CMsgGCItemCustomizationNotification &notification)
+{
+    CSOEconItem temp;
+    if (!m_itemSchema.CreateDropItem(m_random, temp))
+    {
+        Platform::Print("Inventory: no revolving loot lists loaded, cannot give drop\n");
+        return false;
+    }
+
+    CSOEconItem &item = CreateItem(temp);
+    ToSingleObject(newItem, item);
+
+    notification.set_request(k_EGCItemCustomizationNotification_FoundInCrate);
+    notification.add_item_id(item.id());
+
+    Platform::Print("Inventory: gave match drop item %llu (def %u)\n", item.id(), item.def_index());
+    return true;
 }
 
 uint64_t Inventory::PurchaseItem(uint32_t defIndex, std::vector<CMsgSOSingleObject> &update)
