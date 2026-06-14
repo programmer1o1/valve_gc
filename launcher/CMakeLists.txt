@@ -41,8 +41,11 @@ endfunction()
 launcher_target(csgo OFF)
 launcher_target(cs2 OFF)
 if (WIN32 AND NOT IS_32BIT)
-    # CS2 on Windows puts launcher.dll in bin/win64/, not bin/x64/
-    target_compile_definitions(cs2 PRIVATE GC_GAME_BIN_DIR="win64")
+    # CS2 on Windows: exe lives in game\bin\win64\ next to tier0.dll and engine2.dll.
+    # It loads them directly rather than going through a launcher.dll.
+    target_compile_definitions(cs2 PRIVATE
+        GC_GAME_BIN_DIR="win64"
+        CS2_LAUNCHER)
 endif()
 
 if (WIN32 OR (IS_32BIT AND NOT APPLE))
