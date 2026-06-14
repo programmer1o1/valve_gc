@@ -2452,9 +2452,11 @@ void SteamHookPreInstall(bool dedicated)
     AppId::Init();
     Platform::SetEnvVar("SteamAppId", std::to_string(AppId::GetOverride()).c_str());
 
-    // Hook SteamAPI_Init so the rest of the setup runs the first time the
-    // game calls it (from within Source2Main, after tier0 is fully initialized).
-    INLINE_HOOK(SteamAPI_Init);
+    // CS2 (Source 2) does not call steam_api64's SteamAPI_Init — it initializes
+    // Steam directly through tier0/steamclient. Hook CreateInterface now, before
+    // Source2Main, so we intercept CS2's direct steamclient initialization.
+    // steamclient64.dll is already in memory; Steam bootstraps it before the game runs.
+    InstallSteamClientHooks();
 }
 
 void SteamHookInstall(bool dedicated)
