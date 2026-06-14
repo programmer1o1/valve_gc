@@ -2395,13 +2395,17 @@ static void ShutdownSteamAPI(bool dedicated)
     }
 }
 
-static void InstallSteamClientHooks()
+static void InstallSteamClientHooks(HMODULE preloadedModule = nullptr)
 {
 #ifdef _WIN32
     // On Windows, bypass Platform::SteamClientPath/Factory entirely.
     // Use the already-loaded module handle directly — path-based LoadLibraryExW
     // fails under CrossOver because Wine maps module paths differently.
-    HMODULE steamclientModule = GetModuleHandleW(L"steamclient64.dll");
+    // preloadedModule is set when called from LdrRegisterDllNotification, where
+    // GetModuleHandleW returns NULL because the DLL isn't in the module list yet.
+    HMODULE steamclientModule = preloadedModule;
+    if (!steamclientModule)
+        steamclientModule = GetModuleHandleW(L"steamclient64.dll");
     if (!steamclientModule)
         steamclientModule = GetModuleHandleW(L"steamclient.dll");
     if (!steamclientModule)
@@ -2492,7 +2496,9 @@ static void CALLBACK OnSteamClientLoaded(ULONG reason, const CSGO_LDR_DLL_NOTIFI
     {
         Platform::Print("csgo_gc: steamclient loaded (%ls), installing GC hooks\n",
             data->Loaded.BaseDllName->Buffer);
-        InstallSteamClientHooks();
+        // Pass DllBase directly: GetModuleHandleW returns NULL here because the
+        // notification fires before the DLL is added to the loaded-modules list.
+        InstallSteamClientHooks((HMODULE)data->Loaded.DllBase);
     }
 }
 #endif
