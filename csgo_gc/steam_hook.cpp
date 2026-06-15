@@ -2073,6 +2073,7 @@ static void *(*Og_CreateInterface)(const char *, int *errorCode);
 // when CS2 calls methods added in later versions). Instead we hook the function itself.
 #ifdef _WIN32
 static bool s_gcIfaceHookInstalled = false;
+static SteamGameCoordinatorProxy *s_cs2GCProxy;
 static void *(*Og_GetISteamGenericInterface_direct)(void *, HSteamUser, HSteamPipe, const char *);
 
 static void *Hk_GetISteamGenericInterface_direct(void *thisptr, HSteamUser hSteamUser, HSteamPipe hSteamPipe, const char *pchVersion)
@@ -2252,7 +2253,6 @@ static void (*Og_SteamGameServer_RunCallbacks)();
 // "SteamGameCoordinator001" request.  Hook this function directly.
 #ifdef _WIN32
 static void *(*Og_SteamInternal_FindOrCreateUserInterface)(HSteamUser, const char *);
-static SteamGameCoordinatorProxy *s_cs2GCProxy;
 
 static void *Hk_SteamInternal_FindOrCreateUserInterface(HSteamUser hSteamUser, const char *pszVersion)
 {
