@@ -230,6 +230,9 @@ void ClientGC::HandleMessage(uint32_t type, const void *data, uint32_t size)
         switch (messageRead.TypeUnmasked())
         {
         case k_EMsgGCClientHello:
+        case k_EMsgGCClientHelloR2:
+        case k_EMsgGCClientHelloR3:
+        case k_EMsgGCClientHelloR4:
             OnClientHello(messageRead);
             break;
 
@@ -482,6 +485,7 @@ void ClientGC::SendRankUpdate()
 
 void ClientGC::OnClientHello(GCMessageRead &messageRead)
 {
+    Platform::Print("ClientGC: OnClientHello type=%u\n", messageRead.TypeUnmasked());
     CMsgClientHello hello;
     if (!messageRead.ReadProtobuf(hello))
     {
