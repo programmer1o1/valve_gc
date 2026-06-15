@@ -2200,6 +2200,32 @@ static void (*Og_SteamAPI_UnregisterCallback)(class CCallbackBase *pCallback);
 static void (*Og_SteamAPI_RunCallbacks)();
 static void (*Og_SteamGameServer_RunCallbacks)();
 
+// CS2 uses SteamInternal_FindOrCreateUserInterface() from steam_api64.dll instead of
+// ISteamClient::GetISteamGenericInterface(), so our ISteamClient proxy never sees the
+// "SteamGameCoordinator001" request.  Hook this function directly.
+#ifdef _WIN32
+static void *(*Og_SteamInternal_FindOrCreateUserInterface)(HSteamUser, const char *);
+static SteamGameCoordinatorProxy *s_cs2GCProxy;
+
+static void *Hk_SteamInternal_FindOrCreateUserInterface(HSteamUser hSteamUser, const char *pszVersion)
+{
+    void *result = Og_SteamInternal_FindOrCreateUserInterface(hSteamUser, pszVersion);
+
+    if (strcmp(pszVersion, STEAMGAMECOORDINATOR_INTERFACE_VERSION) == 0)
+    {
+        if (!s_cs2GCProxy)
+        {
+            uint64_t steamId = SteamUser() ? SteamUser()->GetSteamID().ConvertToUint64() : 0;
+            Platform::Print("csgo_gc: intercepted GC via FindOrCreateUserInterface, steamId=%llu\n", steamId);
+            s_cs2GCProxy = new SteamGameCoordinatorProxy(steamId);
+        }
+        return s_cs2GCProxy;
+    }
+
+    return result;
+}
+#endif
+
 static void Hk_SteamAPI_RegisterCallback(class CCallbackBase *pCallback, int iCallback)
 {
     if (s_callbackHooks.RegisterCallback(pCallback, iCallback))
@@ -2429,6 +2455,30 @@ static void InstallSteamClientHooks(HMODULE preloadedModule = nullptr)
     INLINE_HOOK(SteamAPI_UnregisterCallback);
     INLINE_HOOK(SteamAPI_RunCallbacks);
     INLINE_HOOK(SteamGameServer_RunCallbacks);
+
+#ifdef _WIN32
+    // CS2 accesses the GC via SteamInternal_FindOrCreateUserInterface rather than
+    // ISteamClient::GetISteamGenericInterface, so hook it to intercept the GC request.
+    // csgo_gc.dll doesn't import this symbol, so resolve it manually.
+    {
+        HMODULE steamApi = GetModuleHandleW(L"steam_api64.dll");
+        void *fnFindOrCreate = steamApi
+            ? GetProcAddress(steamApi, "SteamInternal_FindOrCreateUserInterface")
+            : nullptr;
+        if (fnFindOrCreate)
+        {
+            HookCreate("SteamInternal_FindOrCreateUserInterface",
+                fnFindOrCreate,
+                reinterpret_cast<void *>(Hk_SteamInternal_FindOrCreateUserInterface),
+                reinterpret_cast<void **>(&Og_SteamInternal_FindOrCreateUserInterface));
+            Platform::Print("csgo_gc: hooked SteamInternal_FindOrCreateUserInterface\n");
+        }
+        else
+        {
+            Platform::Print("csgo_gc: SteamInternal_FindOrCreateUserInterface not found, CS2 GC interception may fail\n");
+        }
+    }
+#endif
 }
 
 // CS2 deferred path: SteamAPI_Init is hooked so that steamclient setup happens
