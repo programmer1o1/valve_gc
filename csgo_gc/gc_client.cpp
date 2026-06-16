@@ -896,17 +896,19 @@ void ClientGC::UnlockCrate(GCMessageRead &messageRead)
             newItem,
             notification))
     {
-        // CS2 expects k_EMsgGCUnlockCrateResponse (type 1008) first.
-        // Empty body: all proto fields default to 0, so result_code=0 (success).
-        // Without this CS2's handler never fires and shows "Unable to retrieve".
+        // SO cache updates must arrive at the client BEFORE the response,
+        // because the response handler immediately searches the SO cache for
+        // the new item by origin==5. If the Create hasn't arrived yet, it
+        // won't be found and CrateOpened never fires.
+        SendMessageToGame(true, k_ESOMsg_Destroy, destroyCrate);
+        SendMessageToGame(true, k_ESOMsg_Destroy, destroyKey);
+        SendMessageToGame(true, k_ESOMsg_Create, newItem);
+
+        // Now send the response (result=0). Client will find the origin==5 item.
         {
             CMsgGCItemCustomizationNotification emptyResponse;
             SendMessageToGame(false, k_EMsgGCUnlockCrateResponse, emptyResponse);
         }
-
-        SendMessageToGame(true, k_ESOMsg_Destroy, destroyCrate);
-        SendMessageToGame(true, k_ESOMsg_Destroy, destroyKey);
-        SendMessageToGame(true, k_ESOMsg_Create, newItem);
 
         SendMessageToGame(false, k_EMsgGCItemCustomizationNotification, notification);
     }
