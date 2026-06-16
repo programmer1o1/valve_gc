@@ -75,6 +75,7 @@ void ServerGC::HandleMessage(uint32_t type, const void *data, uint32_t size)
         switch (messageRead.TypeUnmasked())
         {
         case k_EMsgGCServerHello:
+            Platform::Print("ServerGC: received k_EMsgGCServerHello, sending welcome\n");
             SendServerWelcome();
             break;
 
@@ -336,6 +337,7 @@ void ServerGC::SendServerWelcome()
     GCMessageWrite write{ k_EMsgGCServerWelcome, welcome };
     PostToHost(HostEvent::Message, write.TypeMasked(), write.Data(), write.Size());
 
+    Platform::Print("ServerGC: sent k_EMsgGCServerWelcome\n");
     m_sentWelcome = true;
 }
 
