@@ -9,17 +9,40 @@ namespace Platform
 using ConColorMsg_t = void (*)(const uint8_t *, const char *, ...);
 static ConColorMsg_t s_ConColorMsg;
 
-// Log path relative to game\bin\win64\ (CS2's CWD at runtime).
-// Initialize() runs from the launcher (CWD = game\), so we delete
-// both possible locations to clean up logs from either CWD.
-static constexpr const char *LogFilePath = "../../csgo_gc/gc_log.txt";
+// Absolute path to gc_log.txt, computed once from the DLL's own location
+// so it works regardless of CWD (which differs between launcher and CS2).
+static char s_logFilePath[MAX_PATH];
+
+static void ComputeLogPath()
+{
+    if (s_logFilePath[0])
+        return;
+
+    // Get the path of this DLL: game\csgo_gc\x64\csgo_gc.dll
+    HMODULE hSelf = nullptr;
+    GetModuleHandleExA(
+        GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+        reinterpret_cast<LPCSTR>(ComputeLogPath), &hSelf);
+
+    char dllPath[MAX_PATH] = {};
+    GetModuleFileNameA(hSelf, dllPath, MAX_PATH);
+
+    // Strip filename: game\csgo_gc\x64\
+    char *last = strrchr(dllPath, '\\');
+    if (last) *last = '\0';
+
+    // Strip x64\: game\csgo_gc\
+    last = strrchr(dllPath, '\\');
+    if (last) *last = '\0';
+
+    // Append gc_log.txt: game\csgo_gc\gc_log.txt
+    snprintf(s_logFilePath, MAX_PATH, "%s\\gc_log.txt", dllPath);
+}
 
 void Initialize()
 {
-    // Delete old log at the runtime location (relative to game\bin\win64\).
-    // Also try the launcher CWD location just in case.
-    DeleteFileA(LogFilePath);
-    DeleteFileA("gc_log.txt");
+    ComputeLogPath();
+    DeleteFileA(s_logFilePath);
 
     HMODULE tier0 = GetModuleHandleW(L"tier0.dll");
     if (tier0)
@@ -53,7 +76,8 @@ void Print(const char *format, ...)
     // optionally also log to file
     if (logOutput >= LogOutputFile)
     {
-        FILE *f = fopen(LogFilePath, "a");
+        ComputeLogPath();
+        FILE *f = fopen(s_logFilePath, "a");
         if (f)
         {
             fprintf(f, "%s", buffer);
