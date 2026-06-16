@@ -9,55 +9,22 @@ namespace Platform
 using ConColorMsg_t = void (*)(const uint8_t *, const char *, ...);
 static ConColorMsg_t s_ConColorMsg;
 
-// Absolute paths computed once from the DLL's own location,
-// independent of CWD (which differs between launcher and CS2 runtime).
-static char s_dataDir[MAX_PATH];
-static char s_logFilePath[MAX_PATH];
-
-static void ComputeLogPath()
-{
-    char dllPath[MAX_PATH];
-    char *p;
-    HMODULE hSelf;
-
-    if (s_logFilePath[0])
-        return;
-
-    // Get the absolute path of this DLL: game\csgo_gc\x64\csgo_gc.dll
-    hSelf = nullptr;
-    GetModuleHandleExA(
-        GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-        reinterpret_cast<LPCSTR>(ComputeLogPath), &hSelf);
-
-    dllPath[0] = '\0';
-    GetModuleFileNameA(hSelf, dllPath, MAX_PATH);
-
-    // Strip filename to get game\csgo_gc\x64\
-    p = strrchr(dllPath, '\\');
-    if (p) *p = '\0';
-
-    // Strip x64\ to get game\csgo_gc\
-    p = strrchr(dllPath, '\\');
-    if (p) *p = '\0';
-
-    // Save data dir with trailing backslash: game\csgo_gc\
-    snprintf(s_dataDir, MAX_PATH, "%s\\", dllPath);
-
-    // Build log path: game\csgo_gc\gc_log.txt
-    snprintf(s_logFilePath, MAX_PATH, "%s\\gc_log.txt", dllPath);
-}
+// gc_log.txt lives next to the other data files in game\csgo_gc\.
+// Use the same two-path fallback as config.txt: one path works from
+// the launcher CWD (game\) and the other from CS2's CWD (game\bin\win64\).
+static constexpr const char *LogPathFromCs2Cwd      = "../../csgo_gc/gc_log.txt";
+static constexpr const char *LogPathFromLauncherCwd = "csgo_gc/gc_log.txt";
 
 const char *DataDir()
 {
-    if (!s_dataDir[0])
-        ComputeLogPath(); // ComputeLogPath also sets s_dataDir
-    return s_dataDir;
+    return "../../csgo_gc/";   // relative to game\bin\win64\ (CS2 runtime CWD)
 }
 
 void Initialize()
 {
-    ComputeLogPath();
-    DeleteFileA(s_logFilePath);
+    // Delete the old log from whichever CWD this runs in.
+    DeleteFileA(LogPathFromCs2Cwd);
+    DeleteFileA(LogPathFromLauncherCwd);
 
     HMODULE tier0 = GetModuleHandleW(L"tier0.dll");
     if (tier0)
@@ -88,11 +55,11 @@ void Print(const char *format, ...)
         s_ConColorMsg(color, "[GC] %s", buffer);
     }
 
-    // optionally also log to file
+    // optionally also log to file — try CS2 CWD path first, then launcher CWD path
     if (logOutput >= LogOutputFile)
     {
-        ComputeLogPath();
-        FILE *f = fopen(s_logFilePath, "a");
+        FILE *f = fopen(LogPathFromCs2Cwd, "a");
+        if (!f) f = fopen(LogPathFromLauncherCwd, "a");
         if (f)
         {
             fprintf(f, "%s", buffer);
