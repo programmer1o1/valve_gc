@@ -208,7 +208,7 @@ ItemSchema::ItemSchema()
     {
         KeyValue unusualLootLists{ "unusual_loot_lists" };
 
-        if (unusualLootLists.ParseFromFile("../csgo_gc/unusual_loot_lists.txt"))
+        if (unusualLootLists.ParseFromFile("csgo_gc/unusual_loot_lists.txt"))
         {
             ParseLootLists(&unusualLootLists, true);
         }

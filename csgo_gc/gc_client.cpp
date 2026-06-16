@@ -47,7 +47,7 @@ static std::string GetCollectionName(const ItemSchema &schema, std::string_view 
     return schema.GetCollectionDisplayName(collectionId);
 }
 
-static constexpr const char *ProgressFilePath = "../csgo_gc/progress.txt";
+static constexpr const char *ProgressFilePath = "csgo_gc/progress.txt";
 
 static void LoadProgress(uint32_t configLevel, uint32_t configXp, uint32_t &outLevel, uint32_t &outXp)
 {
@@ -757,7 +757,7 @@ void ClientGC::StoreGetUserData(GCMessageRead &messageRead)
     }
 
     KeyValue priceSheet{ "price_sheet" };
-    if (!priceSheet.ParseFromFile("../csgo_gc/price_sheet.txt"))
+    if (!priceSheet.ParseFromFile("csgo_gc/price_sheet.txt"))
     {
         return;
     }
