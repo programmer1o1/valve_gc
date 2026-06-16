@@ -6,6 +6,10 @@ namespace Platform
 // called right after we load into the process
 void Initialize();
 
+// returns the absolute path to the csgo_gc data directory (e.g. game\csgo_gc\)
+// with a trailing path separator.  Safe to call from any CWD.
+const char *DataDir();
+
 // print a debugging message to the in game console or something
 void Print(const char *format, ...);
 

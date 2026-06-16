@@ -3,7 +3,10 @@
 #include "keyvalue.h"
 #include "random.h"
 
-constexpr const char *ConfigFilePath = "../../csgo_gc/config.txt";
+// Try from CS2's CWD (game\bin\win64\) first, then from the launcher's CWD (game\).
+// GetConfig() can be called from either context on first use.
+static const char *ConfigFilePath = "../../csgo_gc/config.txt";
+static const char *ConfigFilePathAlt = "csgo_gc/config.txt";
 
 const GCConfig &GetConfig()
 {
@@ -15,7 +18,7 @@ GCConfig::GCConfig()
 {
     KeyValue config{ "config" };
 
-    if (!config.ParseFromFile(ConfigFilePath))
+    if (!config.ParseFromFile(ConfigFilePath) && !config.ParseFromFile(ConfigFilePathAlt))
     {
         return;
     }
