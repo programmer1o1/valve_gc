@@ -75,8 +75,12 @@ void ServerGC::HandleMessage(uint32_t type, const void *data, uint32_t size)
         switch (messageRead.TypeUnmasked())
         {
         case k_EMsgGCServerHello:
-            Platform::Print("ServerGC: received k_EMsgGCServerHello, sending welcome\n");
+            Platform::Print("ServerGC: received k_EMsgGCServerHello, sending welcome + SO cache\n");
             SendServerWelcome();
+            // Proactively push the player's SO cache to the game server.
+            // Modern CS2 doesn't send Server2GCClientValidate, so we send
+            // immediately when the server connects to the GC.
+            PostToHost(HostEvent::SOCacheRequest, 0, nullptr, 0);
             break;
 
         case k_EMsgGCCStrike15_v2_Server2GCClientValidate:
