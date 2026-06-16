@@ -9,8 +9,9 @@ namespace Platform
 using ConColorMsg_t = void (*)(const uint8_t *, const char *, ...);
 static ConColorMsg_t s_ConColorMsg;
 
-// Absolute path to gc_log.txt, computed once from the DLL's own location
-// so it works regardless of CWD (which differs between launcher and CS2).
+// Absolute paths computed once from the DLL's own location,
+// independent of CWD (which differs between launcher and CS2 runtime).
+static char s_dataDir[MAX_PATH];
 static char s_logFilePath[MAX_PATH];
 
 static void ComputeLogPath()
@@ -41,9 +42,6 @@ static void ComputeLogPath()
     // Append gc_log.txt: game\csgo_gc\gc_log.txt
     snprintf(s_logFilePath, MAX_PATH, "%s\\gc_log.txt", dllPath);
 }
-
-// Absolute path to the csgo_gc data directory (game\csgo_gc\), with trailing backslash.
-static char s_dataDir[MAX_PATH];
 
 const char *DataDir()
 {
