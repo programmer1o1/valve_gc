@@ -35,8 +35,21 @@ static void ComputeLogPath()
     last = strrchr(dllPath, '\\');
     if (last) *last = '\0';
 
+    // Save the data dir (game\csgo_gc\) with trailing backslash
+    snprintf(s_dataDir, MAX_PATH, "%s\\", dllPath);
+
     // Append gc_log.txt: game\csgo_gc\gc_log.txt
     snprintf(s_logFilePath, MAX_PATH, "%s\\gc_log.txt", dllPath);
+}
+
+// Absolute path to the csgo_gc data directory (game\csgo_gc\), with trailing backslash.
+static char s_dataDir[MAX_PATH];
+
+const char *DataDir()
+{
+    if (!s_dataDir[0])
+        ComputeLogPath(); // ComputeLogPath also sets s_dataDir
+    return s_dataDir;
 }
 
 void Initialize()
