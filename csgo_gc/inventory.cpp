@@ -1546,7 +1546,6 @@ Inventory::CounterSwapResult Inventory::PerformCounterSwap(uint64_t toolId, uint
 
 void Inventory::Reload()
 {
-    WriteToFile();
     m_items.clear();
     m_defaultEquips.clear();
     m_lastHighItemId = 0;

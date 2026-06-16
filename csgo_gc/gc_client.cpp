@@ -1202,7 +1202,7 @@ void ClientGC::ReloadInventory()
     RefreshCachedMusicKitMVPs();
 
     CMsgSOCacheSubscribed cacheMsg;
-    m_inventory.BuildCacheSubscription(cacheMsg, GetConfig().Level(), true);
+    m_inventory.BuildCacheSubscription(cacheMsg, GetConfig().Level(), false);
     SendMessageToGame(false, k_ESOMsg_CacheSubscribed, cacheMsg);
 
     Platform::Print("ClientGC: inventory reloaded and SO cache resent\n");
