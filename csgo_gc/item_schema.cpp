@@ -115,8 +115,8 @@ ItemSchema::ItemSchema()
     // items_game.txt is unavailable (CS2 packs it in VPK, not a loose file).
     // items_game.txt overrides these via try_emplace after loading.
     static const std::pair<uint32_t, AttributeType> k_knownAttributes[] = {
-        { 6,   AttributeType::Uint32 }, // set item texture prefab (paint kit)
-        { 7,   AttributeType::Uint32 }, // set item texture seed
+        { 6,   AttributeType::Float  }, // set item texture prefab (paint kit) — stored_as_integer=float_floor_to_integer
+        { 7,   AttributeType::Float  }, // set item texture seed — stored_as_integer=float_floor_to_integer
         { 8,   AttributeType::Float  }, // set item texture wear
         { 80,  AttributeType::Uint32 }, // kill eater (StatTrak count)
         { 81,  AttributeType::Uint32 }, // kill eater score type
