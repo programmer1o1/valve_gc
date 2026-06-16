@@ -367,6 +367,14 @@ void ClientGC::HandleSOCacheRequest()
     CMsgSOCacheSubscribed message;
     m_inventory.BuildCacheSubscription(message, GetConfig().Level(), true);
 
+    int itemCount = 0;
+    for (const auto &obj : message.objects())
+    {
+        if (obj.type_id() == SOTypeItem)
+            itemCount = obj.object_data_size();
+    }
+    Platform::Print("HandleSOCacheRequest: sending %d equipped items to game server\n", itemCount);
+
     GCMessageWrite messageWrite{ k_ESOMsg_CacheSubscribed, message };
     PostToHost(HostEvent::NetMessage, 0, messageWrite.Data(), messageWrite.Size());
 }
