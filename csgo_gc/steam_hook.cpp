@@ -2218,6 +2218,19 @@ static void HookGCVtable(void *realGC)
 // Set to true while AfterSteamInit fetches the real GC object so that
 // Hk_GetISteamGenericInterface_direct passes through without interception.
 static bool s_fetchingRealGC = false;
+
+// Raw steamclient64 callback pump — called by both RunCallbacks and ManualDispatch.
+// Signature: bool Steam_BGetCallback(HSteamPipe, CallbackMsg_t*, bool* pbServer)
+struct SteamRawCallbackMsg { int hUser; int id; uint8_t *data; int size; };
+static bool (*Og_Steam_BGetCallback)(HSteamPipe, SteamRawCallbackMsg *, bool *);
+
+static bool Hk_Steam_BGetCallback(HSteamPipe hPipe, SteamRawCallbackMsg *pMsg, bool *pbServer)
+{
+    bool result = Og_Steam_BGetCallback(hPipe, pMsg, pbServer);
+    if (result)
+        Platform::Print("csgo_gc: Steam_BGetCallback id=%d server=%d\n", pMsg->id, (int)*pbServer);
+    return result;
+}
 #endif
 
 // Hook for GetISteamGenericInterface on SteamClient versions newer than 020.
@@ -2718,6 +2731,22 @@ static void InstallSteamClientHooks(void *preloadedModule = nullptr)
 #endif
 
     INLINE_HOOK(CreateInterface);
+
+#ifdef _WIN32
+    // Hook Steam_BGetCallback from steamclient64 — the raw callback pump used by
+    // both SteamAPI_RunCallbacks and SteamAPI_ManualDispatch_GetNextCallback.
+    // Logging here shows every callback id the game receives, including GC ones.
+    {
+        void *fnBGet = GetProcAddress(steamclientModule, "Steam_BGetCallback");
+        if (fnBGet)
+        {
+            HookCreate("Steam_BGetCallback", fnBGet,
+                reinterpret_cast<void *>(Hk_Steam_BGetCallback),
+                reinterpret_cast<void **>(&Og_Steam_BGetCallback));
+            Platform::Print("csgo_gc: hooked Steam_BGetCallback\n");
+        }
+    }
+#endif
 
     // steam api hooks for gc callbacks
     INLINE_HOOK(SteamAPI_RegisterCallback);
