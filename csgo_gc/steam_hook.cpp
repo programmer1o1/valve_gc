@@ -2134,15 +2134,30 @@ static void HookGCVtable(void *realGC)
 {
     if (s_gcMethodsHooked || !realGC)
         return;
-    s_gcMethodsHooked = true;
 
     void **vtable = *reinterpret_cast<void ***>(realGC);
-    Platform::Print("csgo_gc: hooking GC vtable: SendMessage=%p IsMessageAvailable=%p RetrieveMessage=%p\n",
+    Platform::Print("csgo_gc: patching GC vtable: [0]=%p [1]=%p [2]=%p\n",
         vtable[0], vtable[1], vtable[2]);
-    HookCreate("GC_SendMessage",        vtable[0], reinterpret_cast<void *>(Hk_GC_SendMessage),        reinterpret_cast<void **>(&Og_GC_SendMessage));
-    HookCreate("GC_IsMessageAvailable", vtable[1], reinterpret_cast<void *>(Hk_GC_IsMessageAvailable), reinterpret_cast<void **>(&Og_GC_IsMessageAvailable));
-    HookCreate("GC_RetrieveMessage",    vtable[2], reinterpret_cast<void *>(Hk_GC_RetrieveMessage),    reinterpret_cast<void **>(&Og_GC_RetrieveMessage));
-    Platform::Print("csgo_gc: GC vtable hooked\n");
+
+    // Save originals (direct pointers, no funchook trampoline needed).
+    Og_GC_SendMessage        = reinterpret_cast<EGCResults (*)(void *, uint32, const void *, uint32)>(vtable[0]);
+    Og_GC_IsMessageAvailable = reinterpret_cast<bool (*)(void *, uint32 *)>(vtable[1]);
+    Og_GC_RetrieveMessage    = reinterpret_cast<EGCResults (*)(void *, uint32 *, void *, uint32, uint32 *)>(vtable[2]);
+
+    // Vtable lives in read-only memory; make it temporarily writable.
+    DWORD oldProtect;
+    if (!VirtualProtect(vtable, 3 * sizeof(void *), PAGE_READWRITE, &oldProtect))
+    {
+        Platform::Print("csgo_gc: VirtualProtect failed: %lu\n", GetLastError());
+        return;
+    }
+    vtable[0] = reinterpret_cast<void *>(Hk_GC_SendMessage);
+    vtable[1] = reinterpret_cast<void *>(Hk_GC_IsMessageAvailable);
+    vtable[2] = reinterpret_cast<void *>(Hk_GC_RetrieveMessage);
+    VirtualProtect(vtable, 3 * sizeof(void *), oldProtect, &oldProtect);
+
+    s_gcMethodsHooked = true;
+    Platform::Print("csgo_gc: GC vtable patched\n");
 }
 #endif
 
