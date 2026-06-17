@@ -526,20 +526,25 @@ public:
     SteamGameCoordinatorProxy(uint64_t steamId)
         : m_server{ !steamId }
     {
+        Platform::Print("csgo_gc: SteamGameCoordinatorProxy(%llu) m_server=%d\n",
+            (unsigned long long)steamId, (int)m_server);
         if (m_server)
         {
             assert(!s_serverGC);
             s_serverGC = new GCWrapper<ServerGC, NetworkingServer>{ SteamGameServerNetworkingMessages() };
+            Platform::Print("csgo_gc: ServerGC created\n");
         }
         else
         {
             assert(!s_clientGC);
             s_clientGC = new GCWrapper<ClientGC, NetworkingClient>{ SteamNetworkingMessages(), steamId };
+            Platform::Print("csgo_gc: ClientGC created for steamId=%llu\n", (unsigned long long)steamId);
         }
     }
 
     ~SteamGameCoordinatorProxy()
     {
+        Platform::Print("csgo_gc: ~SteamGameCoordinatorProxy m_server=%d\n", (int)m_server);
         if (m_server)
         {
             assert(s_serverGC);
@@ -556,6 +561,8 @@ public:
 
     EGCResults SendMessage(uint32 unMsgType, const void *pubData, uint32 cubData) override
     {
+        Platform::Print("csgo_gc: GCProxy::SendMessage type=%u size=%u server=%d\n",
+            unMsgType, cubData, (int)m_server);
         if (m_server)
         {
             assert(s_serverGC);
@@ -605,6 +612,8 @@ public:
             return k_EGCResultNoMessage;
         }
 
+        Platform::Print("csgo_gc: GCProxy::RetrieveMessage type=%u size=%u server=%d\n",
+            *punMsgType, *pcubMsgSize, (int)m_server);
         return k_EGCResultOK;
     }
 };
@@ -2319,8 +2328,8 @@ static void *Hk_SteamInternal_FindOrCreateUserInterface(HSteamUser hSteamUser, c
 
 static void Hk_SteamAPI_RegisterCallback(class CCallbackBase *pCallback, int iCallback)
 {
-    if (iCallback == GCMessageAvailable_t::k_iCallback)
-        Platform::Print("csgo_gc: game registered GCMessageAvailable_t callback\n");
+    Platform::Print("csgo_gc: SteamAPI_RegisterCallback id=%d intercepted=%d\n",
+        iCallback, (int)ShouldHookCallback(iCallback));
 
     if (s_callbackHooks.RegisterCallback(pCallback, iCallback))
     {
@@ -2345,6 +2354,14 @@ static void Hk_SteamAPI_RunCallbacks()
     Og_SteamAPI_RunCallbacks();
 
     UpdateGameEventListeners();
+
+    static bool s_loggedState = false;
+    if (!s_loggedState)
+    {
+        s_loggedState = true;
+        Platform::Print("csgo_gc: RunCallbacks first tick: s_clientGC=%p s_cs2GCProxy=%p s_cs2GCProxyServer=%p\n",
+            (void *)s_clientGC, (void *)s_cs2GCProxy, (void *)s_cs2GCProxyServer);
+    }
 
     if (s_clientGC)
     {
