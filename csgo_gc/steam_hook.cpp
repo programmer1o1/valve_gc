@@ -2419,8 +2419,7 @@ static void Hk_SteamAPI_RunCallbacks()
     if (!s_loggedState)
     {
         s_loggedState = true;
-        Platform::Print("csgo_gc: RunCallbacks first tick: s_clientGC=%p s_cs2GCProxy=%p s_cs2GCProxyServer=%p\n",
-            (void *)s_clientGC, (void *)s_cs2GCProxy, (void *)s_cs2GCProxyServer);
+        Platform::Print("csgo_gc: RunCallbacks first tick: s_clientGC=%p\n", (void *)s_clientGC);
     }
 
 #ifdef _WIN32
