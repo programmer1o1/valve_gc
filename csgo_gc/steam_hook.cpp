@@ -2128,6 +2128,61 @@ static EGCResults Hk_GC_RetrieveMessage(void *thisptr, uint32 *punMsgType, void 
     return Og_GC_RetrieveMessage(thisptr, punMsgType, pubDest, cubDest, pcubMsgSize);
 }
 
+// CS2 uses SteamAPI_ManualDispatch_GetNextCallback instead of RegisterCallback
+// to receive GC callbacks. Hook it to:
+//  1. Log all callbacks the game receives (diagnostic)
+//  2. Inject GCMessageAvailable_t when our local GC queue has messages
+struct SteamManualDispatchMsg
+{
+    int32_t  m_hSteamUser;
+    int32_t  m_iCallback;
+    uint8_t *m_pubParam;
+    int32_t  m_cubParam;
+    uint32_t _pad;
+};
+static GCMessageAvailable_t s_injectedGCMsg{};
+static bool s_lastCallbackWasInjected = false;
+static bool (*Og_ManualDispatch_GetNextCallback)(HSteamPipe, SteamManualDispatchMsg *);
+static void (*Og_ManualDispatch_FreeLastCallback)(HSteamPipe);
+
+static bool Hk_ManualDispatch_GetNextCallback(HSteamPipe hPipe, SteamManualDispatchMsg *pMsg)
+{
+    bool result = Og_ManualDispatch_GetNextCallback(hPipe, pMsg);
+    if (result)
+    {
+        Platform::Print("csgo_gc: ManualDispatch_GetNextCallback: id=%d\n", pMsg->m_iCallback);
+        s_lastCallbackWasInjected = false;
+        return true;
+    }
+    // Inject GCMessageAvailable_t when our local GC queue has messages
+    if (s_clientGC)
+    {
+        uint32_t msgSize;
+        if (s_clientGC->m_messageQueue.IsMessageAvailable(msgSize))
+        {
+            s_injectedGCMsg.m_nMessageSize = msgSize;
+            pMsg->m_hSteamUser = s_clientHSteamUser;
+            pMsg->m_iCallback  = GCMessageAvailable_t::k_iCallback; // 1701
+            pMsg->m_pubParam   = reinterpret_cast<uint8_t *>(&s_injectedGCMsg);
+            pMsg->m_cubParam   = sizeof(GCMessageAvailable_t);
+            s_lastCallbackWasInjected = true;
+            Platform::Print("csgo_gc: injecting GCMessageAvailable_t msgSize=%u\n", msgSize);
+            return true;
+        }
+    }
+    return false;
+}
+
+static void Hk_ManualDispatch_FreeLastCallback(HSteamPipe hPipe)
+{
+    if (s_lastCallbackWasInjected)
+    {
+        s_lastCallbackWasInjected = false;
+        return; // injected callback uses static memory — nothing to free in steamclient
+    }
+    Og_ManualDispatch_FreeLastCallback(hPipe);
+}
+
 static void AfterSteamInit(); // forward declaration — defined near Hk_SteamAPI_InitFlat
 
 static void HookGCVtable(void *realGC)
@@ -2835,6 +2890,24 @@ void SteamHookPreInstall(bool dedicated)
         else
         {
             Platform::Print("csgo_gc: neither SteamAPI_InitFlat nor SteamAPI_Init found\n");
+        }
+
+        // Hook ManualDispatch functions to inject GCMessageAvailable_t callbacks.
+        void *fnGetNext = steamApi ? GetProcAddress(steamApi, "SteamAPI_ManualDispatch_GetNextCallback") : nullptr;
+        void *fnFree    = steamApi ? GetProcAddress(steamApi, "SteamAPI_ManualDispatch_FreeLastCallback") : nullptr;
+        if (fnGetNext)
+        {
+            HookCreate("SteamAPI_ManualDispatch_GetNextCallback", fnGetNext,
+                reinterpret_cast<void *>(Hk_ManualDispatch_GetNextCallback),
+                reinterpret_cast<void **>(&Og_ManualDispatch_GetNextCallback));
+            Platform::Print("csgo_gc: hooked SteamAPI_ManualDispatch_GetNextCallback\n");
+        }
+        if (fnFree)
+        {
+            HookCreate("SteamAPI_ManualDispatch_FreeLastCallback", fnFree,
+                reinterpret_cast<void *>(Hk_ManualDispatch_FreeLastCallback),
+                reinterpret_cast<void **>(&Og_ManualDispatch_FreeLastCallback));
+            Platform::Print("csgo_gc: hooked SteamAPI_ManualDispatch_FreeLastCallback\n");
         }
     }
 
