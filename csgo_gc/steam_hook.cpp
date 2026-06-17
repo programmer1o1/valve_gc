@@ -2104,10 +2104,12 @@ static void *Hk_GetISteamGenericInterface_direct(void *thisptr, HSteamUser hStea
             s_cs2GCProxy = new SteamGameCoordinatorProxy(steamId);
             return s_cs2GCProxy;
         }
-        // Subsequent requests: route by pipe/user handles.
-        // Same handles as the first request → game client re-requesting (e.g. after
-        // Steam reconnect or map change). Different handles → game server context.
-        if (hSteamUser == s_clientHSteamUser && hSteamPipe == s_clientHSteamPipe)
+        // Subsequent requests: route by user handle.
+        // Same user as the first request → game client re-requesting (e.g. after
+        // Steam reconnect or map change). Different user → game server context.
+        // Note: only check hSteamUser, not hSteamPipe — s_clientHSteamPipe may be 0
+        // if the proxy was first created via FindOrCreateUserInterface (no pipe param).
+        if (hSteamUser == s_clientHSteamUser)
         {
             return s_cs2GCProxy;
         }
