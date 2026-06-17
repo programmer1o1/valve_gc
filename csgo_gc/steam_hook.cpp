@@ -2161,7 +2161,7 @@ static bool Hk_ManualDispatch_GetNextCallback(HSteamPipe hPipe, SteamManualDispa
         if (s_clientGC->m_messageQueue.IsMessageAvailable(msgSize))
         {
             s_injectedGCMsg.m_nMessageSize = msgSize;
-            pMsg->m_hSteamUser = s_clientHSteamUser;
+            pMsg->m_hSteamUser = SteamAPI_GetHSteamUser();
             pMsg->m_iCallback  = GCMessageAvailable_t::k_iCallback; // 1701
             pMsg->m_pubParam   = reinterpret_cast<uint8_t *>(&s_injectedGCMsg);
             pMsg->m_cubParam   = sizeof(GCMessageAvailable_t);
