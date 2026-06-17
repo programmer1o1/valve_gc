@@ -1761,14 +1761,16 @@ public:
         Platform::Print("csgo_gc: SteamInterfaceProxy::GetInterface(\"%s\")\n", version);
         if (InterfaceMatches(version, STEAMGAMECOORDINATOR_INTERFACE_VERSION))
         {
-            // pass 0 as steamid for servers so the wrapper knows it's for a server
+            // If the GC vtable hooks are installed (CS2 path), s_clientGC is already
+            // set up and the real interface methods are hooked. Return null so
+            // ProxyInterface falls back to the original (hooked) interface.
+            if (s_clientGC)
+                return nullptr;
+
+            // CS:GO / fallback: create a proxy that owns the local GC.
             uint64_t steamId = 0;
-
             if (SteamGameServer_GetHSteamPipe() != m_pipe)
-            {
                 steamId = SteamUser()->GetSteamID().ConvertToUint64();
-            }
-
             return GetOrCreate<ISteamGameCoordinator>(m_steamGameCoordinator, steamId);
         }
         else if (InterfaceMatches(version, STEAMUTILS_INTERFACE_VERSION))
@@ -2084,6 +2086,64 @@ static void *(*Og_CreateInterface)(const char *, int *errorCode);
 
 static void HookCreate(const char *name, void *target, void *hook, void **bridge);
 
+// CS2: the GC interface is pre-created internally by SteamAPI_InitFlat before any
+// game code can request it via GetISteamGenericInterface/FindOrCreateUserInterface.
+// Hook the vtable methods of the real ISteamGameCoordinator object directly so
+// all GC communication goes through our local GC regardless of which path the game
+// used to obtain the interface pointer.
+#ifdef _WIN32
+static bool s_gcMethodsHooked = false;
+static EGCResults (*Og_GC_SendMessage)(void *, uint32, const void *, uint32);
+static bool (*Og_GC_IsMessageAvailable)(void *, uint32 *);
+static EGCResults (*Og_GC_RetrieveMessage)(void *, uint32 *, void *, uint32, uint32 *);
+
+static EGCResults Hk_GC_SendMessage(void *thisptr, uint32 unMsgType, const void *pubData, uint32 cubData)
+{
+    Platform::Print("csgo_gc: GC_SendMessage type=%u size=%u\n", unMsgType, cubData);
+    if (s_clientGC)
+    {
+        s_clientGC->m_gc.PostToGC(GCEvent::Message, unMsgType, pubData, cubData);
+        return k_EGCResultOK;
+    }
+    return Og_GC_SendMessage(thisptr, unMsgType, pubData, cubData);
+}
+
+static bool Hk_GC_IsMessageAvailable(void *thisptr, uint32 *pcubMsgSize)
+{
+    if (s_clientGC)
+        return s_clientGC->m_messageQueue.IsMessageAvailable(*pcubMsgSize);
+    return Og_GC_IsMessageAvailable(thisptr, pcubMsgSize);
+}
+
+static EGCResults Hk_GC_RetrieveMessage(void *thisptr, uint32 *punMsgType, void *pubDest, uint32 cubDest, uint32 *pcubMsgSize)
+{
+    if (s_clientGC)
+    {
+        bool result = s_clientGC->m_messageQueue.RetrieveMessage(*punMsgType, pubDest, cubDest, *pcubMsgSize);
+        if (!result)
+            return cubDest < *pcubMsgSize ? k_EGCResultBufferTooSmall : k_EGCResultNoMessage;
+        Platform::Print("csgo_gc: GC_RetrieveMessage type=%u size=%u\n", *punMsgType, *pcubMsgSize);
+        return k_EGCResultOK;
+    }
+    return Og_GC_RetrieveMessage(thisptr, punMsgType, pubDest, cubDest, pcubMsgSize);
+}
+
+static void HookGCVtable(void *realGC)
+{
+    if (s_gcMethodsHooked || !realGC)
+        return;
+    s_gcMethodsHooked = true;
+
+    void **vtable = *reinterpret_cast<void ***>(realGC);
+    Platform::Print("csgo_gc: hooking GC vtable: SendMessage=%p IsMessageAvailable=%p RetrieveMessage=%p\n",
+        vtable[0], vtable[1], vtable[2]);
+    HookCreate("GC_SendMessage",        vtable[0], reinterpret_cast<void *>(Hk_GC_SendMessage),        reinterpret_cast<void **>(&Og_GC_SendMessage));
+    HookCreate("GC_IsMessageAvailable", vtable[1], reinterpret_cast<void *>(Hk_GC_IsMessageAvailable), reinterpret_cast<void **>(&Og_GC_IsMessageAvailable));
+    HookCreate("GC_RetrieveMessage",    vtable[2], reinterpret_cast<void *>(Hk_GC_RetrieveMessage),    reinterpret_cast<void **>(&Og_GC_RetrieveMessage));
+    Platform::Print("csgo_gc: GC vtable hooked\n");
+}
+#endif
+
 // Hook for GetISteamGenericInterface on SteamClient versions newer than 020.
 // We cannot proxy those objects directly (our proxy is ISteamClient020-based and crashes
 // when CS2 calls methods added in later versions). Instead we hook the function itself.
@@ -2363,6 +2423,12 @@ static void Hk_SteamAPI_RunCallbacks()
             (void *)s_clientGC, (void *)s_cs2GCProxy, (void *)s_cs2GCProxyServer);
     }
 
+#ifdef _WIN32
+    // Fallback: if InitFlat fired before our hook was installed, set up the GC now.
+    if (!s_clientGC && !s_cs2GCProxy)
+        AfterSteamInit();
+#endif
+
     if (s_clientGC)
     {
         std::vector<EventData> events;
@@ -2606,39 +2672,53 @@ static void InstallSteamClientHooks(void *preloadedModule = nullptr)
 }
 
 static bool s_deferredDedicated;
-static bool (*Og_SteamAPI_Init)();
 
-// SteamAPI_Init creates the ISteamGameCoordinator interface internally via steamclient64
-// before any game code requests it. By the time any public hook fires for the GC, the
-// interface is already cached and never re-requested. Hook SteamAPI_Init so we can create
-// our proxy *after* Steam is fully up (SteamUser()->GetSteamID() valid) but before the
-// game's GC client code runs.
-static bool Hk_SteamAPI_Init()
-{
-    Platform::Print("csgo_gc: Hk_SteamAPI_Init fired\n");
-    bool result = Og_SteamAPI_Init();
-    Platform::Print("csgo_gc: SteamAPI_Init returned %d\n", (int)result);
-    if (!result)
-    {
-        Platform::Error("Steam initialization failed. Please try the following steps:\n"
-                        "- Ensure that Steam is running.\n"
-                        "- Restart Steam and try again.\n"
-                        "- Verify that you have launched app %u through Steam at least once.",
-            AppId::GetOverride());
-    }
 #ifdef _WIN32
-    if (result && !s_cs2GCProxy)
+// CS2 uses SteamAPI_InitFlat (not SteamAPI_Init). After it returns, Steam is fully
+// initialized: SteamUser()->GetSteamID() is valid and the real ISteamGameCoordinator
+// object exists. Hook its vtable methods to redirect all GC communication to our
+// local GC, then create the ClientGC instance.
+static int (*Og_SteamAPI_InitFlat)(void *pOutErrMsg);
+
+static void AfterSteamInit()
+{
+    if (s_gcMethodsHooked || s_clientGC)
+        return;
+
+    HSteamUser hUser = SteamAPI_GetHSteamUser();
+    uint64_t steamId = SteamUser() ? SteamUser()->GetSteamID().ConvertToUint64() : 0;
+    Platform::Print("csgo_gc: AfterSteamInit: user=%d steamId=%llu\n", (int)hUser, (unsigned long long)steamId);
+
+    if (!steamId)
     {
-        HSteamUser hUser = SteamAPI_GetHSteamUser();
-        uint64_t steamId = SteamUser() ? SteamUser()->GetSteamID().ConvertToUint64() : 0;
-        Platform::Print("csgo_gc: creating GC proxy after SteamAPI_Init: user=%d steamId=%llu\n",
-            (int)hUser, (unsigned long long)steamId);
-        s_clientHSteamUser = hUser;
-        s_cs2GCProxy = new SteamGameCoordinatorProxy(steamId);
+        Platform::Print("csgo_gc: steamId is 0, skipping GC init\n");
+        return;
     }
-#endif
+
+    // Get the real GC interface that Steam pre-created and hook its vtable methods.
+    void *realGC = Og_SteamInternal_FindOrCreateUserInterface(hUser, STEAMGAMECOORDINATOR_INTERFACE_VERSION);
+    Platform::Print("csgo_gc: real GC interface: %p\n", realGC);
+    if (realGC)
+        HookGCVtable(realGC);
+
+    // Create our local ClientGC — all GC method calls now go to it via the vtable hooks.
+    s_clientHSteamUser = hUser;
+    s_clientGC = new GCWrapper<ClientGC, NetworkingClient>{ SteamNetworkingMessages(), steamId };
+    Platform::Print("csgo_gc: ClientGC created, steamId=%llu\n", (unsigned long long)steamId);
+}
+
+static int Hk_SteamAPI_InitFlat(void *pOutErrMsg)
+{
+    Platform::Print("csgo_gc: Hk_SteamAPI_InitFlat fired\n");
+    int result = Og_SteamAPI_InitFlat(pOutErrMsg);
+    Platform::Print("csgo_gc: SteamAPI_InitFlat returned %d\n", result);
+    if (result == 0) // k_ESteamAPIInitResult_OK
+        AfterSteamInit();
+    else
+        Platform::Error("Steam initialization failed (SteamAPI_InitFlat returned %d).", result);
     return result;
 }
+#endif
 
 #ifdef _WIN32
 // LdrRegisterDllNotification fires the instant a DLL is mapped into the process,
@@ -2694,21 +2774,33 @@ void SteamHookPreInstall(bool dedicated)
     Platform::SetEnvVar("SteamAppId", std::to_string(AppId::GetOverride()).c_str());
 
 #ifdef _WIN32
-    // Hook SteamAPI_Init so we can create the GC proxy after Steam is fully
-    // initialized. steam_api64.dll is pre-loaded by the launcher before PreInstallGC.
+    // Hook SteamAPI_InitFlat (CS2's init function) so we can set up the GC after Steam
+    // is fully initialized. steam_api64.dll is pre-loaded by the launcher before PreInstallGC.
     {
         HMODULE steamApi = GetModuleHandleW(L"steam_api64.dll");
-        void *fnInit = steamApi ? reinterpret_cast<void *>(GetProcAddress(steamApi, "SteamAPI_Init")) : nullptr;
+        // Try SteamAPI_InitFlat (CS2 SDK), fall back to SteamAPI_Init (older SDK).
+        void *fnInit = nullptr;
+        const char *initName = nullptr;
+        if (steamApi)
+        {
+            fnInit = reinterpret_cast<void *>(GetProcAddress(steamApi, "SteamAPI_InitFlat"));
+            initName = "SteamAPI_InitFlat";
+            if (!fnInit)
+            {
+                fnInit = reinterpret_cast<void *>(GetProcAddress(steamApi, "SteamAPI_Init"));
+                initName = "SteamAPI_Init";
+            }
+        }
         if (fnInit)
         {
-            HookCreate("SteamAPI_Init", fnInit,
-                reinterpret_cast<void *>(Hk_SteamAPI_Init),
-                reinterpret_cast<void **>(&Og_SteamAPI_Init));
-            Platform::Print("csgo_gc: hooked SteamAPI_Init\n");
+            HookCreate(initName, fnInit,
+                reinterpret_cast<void *>(Hk_SteamAPI_InitFlat),
+                reinterpret_cast<void **>(&Og_SteamAPI_InitFlat));
+            Platform::Print("csgo_gc: hooked %s\n", initName);
         }
         else
         {
-            Platform::Print("csgo_gc: SteamAPI_Init not found in steam_api64.dll\n");
+            Platform::Print("csgo_gc: neither SteamAPI_InitFlat nor SteamAPI_Init found\n");
         }
     }
 
