@@ -2159,6 +2159,10 @@ static void HookGCVtable(void *realGC)
     s_gcMethodsHooked = true;
     Platform::Print("csgo_gc: GC vtable patched\n");
 }
+
+// Set to true while AfterSteamInit fetches the real GC object so that
+// Hk_GetISteamGenericInterface_direct passes through without interception.
+static bool s_fetchingRealGC = false;
 #endif
 
 // Hook for GetISteamGenericInterface on SteamClient versions newer than 020.
@@ -2180,6 +2184,10 @@ static void *Hk_GetISteamGenericInterface_direct(void *thisptr, HSteamUser hStea
     void *result = Og_GetISteamGenericInterface_direct(thisptr, hSteamUser, hSteamPipe, pchVersion);
     if (strcmp(pchVersion, STEAMGAMECOORDINATOR_INTERFACE_VERSION) == 0)
     {
+        // AfterSteamInit is fetching the real GC object to patch its vtable — pass through.
+        if (s_fetchingRealGC)
+            return result;
+
         if (!s_cs2GCProxy)
         {
             // First request — always the game client GC.
@@ -2711,16 +2719,26 @@ static void AfterSteamInit()
         return;
     }
 
-    // Get the real GC interface that Steam pre-created and hook its vtable methods.
+    // Get the REAL GC interface that Steam pre-created (bypass our own intercept hooks
+    // so we get the actual steamclient64 object, not s_cs2GCProxy).
+    s_fetchingRealGC = true;
     void *realGC = Og_SteamInternal_FindOrCreateUserInterface(hUser, STEAMGAMECOORDINATOR_INTERFACE_VERSION);
+    s_fetchingRealGC = false;
     Platform::Print("csgo_gc: real GC interface: %p\n", realGC);
     if (realGC)
         HookGCVtable(realGC);
 
-    // Create our local ClientGC — all GC method calls now go to it via the vtable hooks.
-    s_clientHSteamUser = hUser;
-    s_clientGC = new GCWrapper<ClientGC, NetworkingClient>{ SteamNetworkingMessages(), steamId };
-    Platform::Print("csgo_gc: ClientGC created, steamId=%llu\n", (unsigned long long)steamId);
+    // Create our local ClientGC if not already created by another code path.
+    if (!s_clientGC)
+    {
+        s_clientHSteamUser = hUser;
+        s_clientGC = new GCWrapper<ClientGC, NetworkingClient>{ SteamNetworkingMessages(), steamId };
+        Platform::Print("csgo_gc: ClientGC created, steamId=%llu\n", (unsigned long long)steamId);
+    }
+    else
+    {
+        Platform::Print("csgo_gc: ClientGC already exists, skipping creation\n");
+    }
 }
 
 static int Hk_SteamAPI_InitFlat(void *pOutErrMsg)
