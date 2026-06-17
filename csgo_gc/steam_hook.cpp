@@ -2351,12 +2351,12 @@ static void *Hk_GetISteamGenericInterface_direct(void *thisptr, HSteamUser hStea
             s_cs2GCProxy = new SteamGameCoordinatorProxy(steamId);
             return s_cs2GCProxy;
         }
-        // Subsequent requests: route by user handle.
-        // Same user as the first request → game client re-requesting (e.g. after
-        // Steam reconnect or map change). Different user → game server context.
-        // Note: only check hSteamUser, not hSteamPipe — s_clientHSteamPipe may be 0
-        // if the proxy was first created via FindOrCreateUserInterface (no pipe param).
-        if (hSteamUser == s_clientHSteamUser)
+        // Subsequent requests: route by user+pipe.
+        // Same user AND same pipe as the first client request → client re-requesting.
+        // Different pipe (game server pipe) → server proxy.
+        // s_clientHSteamPipe is set in AfterSteamInit via SteamAPI_GetHSteamPipe().
+        if (hSteamUser == s_clientHSteamUser &&
+            (s_clientHSteamPipe == 0 || hSteamPipe == s_clientHSteamPipe))
         {
             return s_cs2GCProxy;
         }
@@ -2546,8 +2546,7 @@ static void *Hk_SteamInternal_FindOrCreateUserInterface(HSteamUser hSteamUser, c
             s_cs2GCProxy = new SteamGameCoordinatorProxy(steamId);
             return s_cs2GCProxy;
         }
-        // Route by HSteamUser: same as initial client request → client proxy,
-        // different → server proxy.
+        // Route by HSteamUser: same user as client → client proxy.
         if (hSteamUser == s_clientHSteamUser)
         {
             return s_cs2GCProxy;
@@ -2934,6 +2933,10 @@ static void AfterSteamInit()
         Platform::Print("csgo_gc: steamId is 0, skipping GC init\n");
         return;
     }
+
+    // Save client pipe so server GC requests (different pipe) route to s_cs2GCProxyServer.
+    s_clientHSteamPipe = SteamAPI_GetHSteamPipe();
+    Platform::Print("csgo_gc: client pipe=%d user=%d\n", (int)s_clientHSteamPipe, (int)hUser);
 
     // Get the REAL GC interface that Steam pre-created (bypass our own intercept hooks
     // so we get the actual steamclient64 object, not s_cs2GCProxy).
