@@ -2693,6 +2693,28 @@ static void InstallSteamClientHooks(void *preloadedModule = nullptr)
 
     INLINE_HOOK(CreateInterface);
 
+#ifdef _WIN32
+    // Hook Steam_BGetCallback to inject GCMessageAvailable_t (id=1701) when our
+    // ClientGC queue has messages. CS2 uses neither SteamAPI_RegisterCallback nor
+    // ManualDispatch for GC callbacks — this raw pump is the only delivery path.
+    {
+        void *fnBGet = GetProcAddress(steamclientModule, "Steam_BGetCallback");
+        void *fnFree = GetProcAddress(steamclientModule, "Steam_FreeLastCallback");
+        if (fnBGet)
+        {
+            HookCreate("Steam_BGetCallback", fnBGet,
+                reinterpret_cast<void *>(Hk_Steam_BGetCallback),
+                reinterpret_cast<void **>(&Og_Steam_BGetCallback));
+        }
+        if (fnFree)
+        {
+            HookCreate("Steam_FreeLastCallback", fnFree,
+                reinterpret_cast<void *>(Hk_Steam_FreeLastCallback),
+                reinterpret_cast<void **>(&Og_Steam_FreeLastCallback));
+        }
+    }
+#endif
+
     // steam api hooks for gc callbacks
     INLINE_HOOK(SteamAPI_RegisterCallback);
     INLINE_HOOK(SteamAPI_UnregisterCallback);
@@ -2723,6 +2745,45 @@ static void InstallSteamClientHooks(void *preloadedModule = nullptr)
     }
 #endif
 }
+
+#ifdef _WIN32
+// Inject GCMessageAvailable_t (id=1701) via the raw steamclient64 callback pump.
+// CS2 doesn't use SteamAPI_RegisterCallback or ManualDispatch for GC callbacks.
+struct SteamRawMsg { int hUser; int id; uint8_t *data; int size; };
+static bool (*Og_Steam_BGetCallback)(HSteamPipe, SteamRawMsg *, bool *);
+static void (*Og_Steam_FreeLastCallback)(HSteamPipe);
+static GCMessageAvailable_t s_gcAvailMsg{};
+static bool s_gcMsgInjected = false;
+
+static bool Hk_Steam_BGetCallback(HSteamPipe hPipe, SteamRawMsg *pMsg, bool *pbServer)
+{
+    bool result = Og_Steam_BGetCallback(hPipe, pMsg, pbServer);
+    if (result) return true;
+    if (s_clientGC && !s_gcMsgInjected)
+    {
+        uint32_t sz;
+        if (s_clientGC->m_messageQueue.IsMessageAvailable(sz))
+        {
+            s_gcAvailMsg.m_nMessageSize = sz;
+            pMsg->hUser = SteamAPI_GetHSteamUser();
+            pMsg->id    = GCMessageAvailable_t::k_iCallback;
+            pMsg->data  = reinterpret_cast<uint8_t *>(&s_gcAvailMsg);
+            pMsg->size  = sizeof(GCMessageAvailable_t);
+            *pbServer   = false;
+            s_gcMsgInjected = true;
+            Platform::Print("csgo_gc: injected GCMessageAvailable_t size=%u\n", sz);
+            return true;
+        }
+    }
+    return false;
+}
+
+static void Hk_Steam_FreeLastCallback(HSteamPipe hPipe)
+{
+    if (s_gcMsgInjected) { s_gcMsgInjected = false; return; }
+    Og_Steam_FreeLastCallback(hPipe);
+}
+#endif
 
 static bool s_deferredDedicated;
 
