@@ -2501,8 +2501,19 @@ static void Hk_SteamAPI_UnregisterCallback(class CCallbackBase *pCallback)
     Og_SteamAPI_UnregisterCallback(pCallback);
 }
 
+#ifdef _WIN32
+// Used by the Steam_BGetCallback injection below. Reset once per RunCallbacks tick so
+// the raw callback pump injects GCMessageAvailable_t at most once per tick (re-injecting
+// inside the same pump loop freezes the client when the game never drains our queue).
+static bool s_gcInjectedThisTick = false;
+#endif
+
 static void Hk_SteamAPI_RunCallbacks()
 {
+#ifdef _WIN32
+    s_gcInjectedThisTick = false;
+#endif
+
     Og_SteamAPI_RunCallbacks();
 
     UpdateGameEventListeners();
@@ -2705,14 +2716,18 @@ struct SteamRawMsg { int hUser; int id; uint8_t *data; int size; };
 static bool (*Og_Steam_BGetCallback)(HSteamPipe, SteamRawMsg *, bool *);
 static void (*Og_Steam_FreeLastCallback)(HSteamPipe);
 static GCMessageAvailable_t s_gcAvailMsg{};
+// True between handing out our injected callback and its matching FreeLastCallback,
+// so we swallow that one Free instead of forwarding it to the real steamclient.
 static bool s_gcMsgInjected = false;
+// s_gcInjectedThisTick is defined above Hk_SteamAPI_RunCallbacks and reset once per tick;
+// it gates injection to at most once per RunCallbacks tick to avoid the pump-loop freeze.
 static uint32_t s_gcLastAnnouncedSize = 0;
 
 static bool Hk_Steam_BGetCallback(HSteamPipe hPipe, SteamRawMsg *pMsg, bool *pbServer)
 {
     bool result = Og_Steam_BGetCallback(hPipe, pMsg, pbServer);
     if (result) return true;
-    if (s_clientGC && !s_gcMsgInjected)
+    if (s_clientGC && !s_gcInjectedThisTick)
     {
         uint32_t sz;
         if (s_clientGC->m_messageQueue.IsMessageAvailable(sz))
@@ -2724,8 +2739,9 @@ static bool Hk_Steam_BGetCallback(HSteamPipe hPipe, SteamRawMsg *pMsg, bool *pbS
             pMsg->size  = sizeof(GCMessageAvailable_t);
             *pbServer   = false;
             s_gcMsgInjected = true;
-            // only log on transitions to avoid flooding the console every pump
-            // cycle while the head-of-queue message stays unretrieved
+            s_gcInjectedThisTick = true;
+            // only log on transitions to avoid flooding the console while the
+            // head-of-queue message stays unretrieved
             if (sz != s_gcLastAnnouncedSize)
             {
                 Platform::Print("csgo_gc: injected GCMessageAvailable_t size=%u\n", sz);
