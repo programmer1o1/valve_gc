@@ -2668,6 +2668,7 @@ static bool (*Og_Steam_BGetCallback)(HSteamPipe, SteamRawMsg *, bool *);
 static void (*Og_Steam_FreeLastCallback)(HSteamPipe);
 static GCMessageAvailable_t s_gcAvailMsg{};
 static bool s_gcMsgInjected = false;
+static uint32_t s_gcLastAnnouncedSize = 0;
 
 static bool Hk_Steam_BGetCallback(HSteamPipe hPipe, SteamRawMsg *pMsg, bool *pbServer)
 {
@@ -2685,7 +2686,13 @@ static bool Hk_Steam_BGetCallback(HSteamPipe hPipe, SteamRawMsg *pMsg, bool *pbS
             pMsg->size  = sizeof(GCMessageAvailable_t);
             *pbServer   = false;
             s_gcMsgInjected = true;
-            Platform::Print("csgo_gc: injected GCMessageAvailable_t size=%u\n", sz);
+            // only log on transitions to avoid flooding the console every pump
+            // cycle while the head-of-queue message stays unretrieved
+            if (sz != s_gcLastAnnouncedSize)
+            {
+                Platform::Print("csgo_gc: injected GCMessageAvailable_t size=%u\n", sz);
+                s_gcLastAnnouncedSize = sz;
+            }
             return true;
         }
     }
