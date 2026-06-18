@@ -1012,7 +1012,8 @@ void ClientGC::UnlockCrate(GCMessageRead &messageRead)
 
 void ClientGC::DoUnlockCrate(uint64_t crateId, uint64_t keyId, uint64_t jobId)
 {
-    Platform::Print("CASE OPENING %llu with %llu\n", crateId, keyId);
+    Platform::Print("CASE OPENING [build c887711+] %llu with %llu jobId=%llu\n",
+        crateId, keyId, jobId);
 
     CMsgSOSingleObject destroyCrate, destroyKey, newItem;
     CMsgGCItemCustomizationNotification notification;
