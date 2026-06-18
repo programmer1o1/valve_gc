@@ -5,6 +5,10 @@
 #include "keyvalue.h"
 #include "networking_shared.h"
 
+// CS2's case-open message id (EGCItemMsg). Not in the committed generated protobuf
+// headers, so define it here. See ClientGC::OpenCrate.
+static constexpr uint32_t k_EMsgGCOpenCrate = 2534;
+
 static bool GetItemPaintKitDefIndex(const CSOEconItem &item, const ItemSchema &schema, uint32_t &paintKitDefIndex)
 {
     for (const CSOEconItemAttribute &attr : item.attribute())
@@ -886,17 +890,73 @@ void ClientGC::DeleteItem(GCMessageRead &messageRead)
 }
 
 // CS2 replaced the deprecated struct-based k_EMsgGCUnlockCrate with the protobuf
-// k_EMsgGCOpenCrate (CMsgOpenCrate): tool_item_id = key, subject_item_id = crate.
+// k_EMsgGCOpenCrate (CMsgOpenCrate): field 1 tool_item_id = key, field 2
+// subject_item_id = crate. The .pb files are committed (not regenerated from .proto),
+// so rather than hand-author a generated message we just scan the (all-varint) wire
+// format for fields 1 and 2.
 void ClientGC::OpenCrate(GCMessageRead &messageRead)
 {
-    CMsgOpenCrate message;
-    if (!messageRead.ReadProtobuf(message))
+    uint32_t size = messageRead.BytesRemaining();
+    const uint8_t *data = static_cast<const uint8_t *>(messageRead.ReadData(size));
+    if (!data || !messageRead.IsValid())
     {
         Platform::Print("Parsing CMsgOpenCrate failed, ignoring\n");
         return;
     }
 
-    DoUnlockCrate(message.subject_item_id(), message.tool_item_id());
+    uint32_t pos = 0;
+    auto readVarint = [&](uint64_t &out) -> bool {
+        out = 0;
+        for (int shift = 0; shift < 64 && pos < size; shift += 7)
+        {
+            uint8_t b = data[pos++];
+            out |= static_cast<uint64_t>(b & 0x7F) << shift;
+            if (!(b & 0x80))
+                return true;
+        }
+        return false;
+    };
+
+    uint64_t keyId = 0, crateId = 0;
+    while (pos < size)
+    {
+        uint64_t tag;
+        if (!readVarint(tag))
+            break;
+        uint32_t field = static_cast<uint32_t>(tag >> 3);
+        uint32_t wire = static_cast<uint32_t>(tag & 7);
+        if (wire == 0) // varint
+        {
+            uint64_t value;
+            if (!readVarint(value))
+                break;
+            if (field == 1)
+                keyId = value;
+            else if (field == 2)
+                crateId = value;
+        }
+        else if (wire == 2) // length-delimited — skip
+        {
+            uint64_t len;
+            if (!readVarint(len))
+                break;
+            pos += static_cast<uint32_t>(len);
+        }
+        else if (wire == 5)
+            pos += 4; // fixed32
+        else if (wire == 1)
+            pos += 8; // fixed64
+        else
+            break;
+    }
+
+    if (!crateId)
+    {
+        Platform::Print("OpenCrate: no crate id in message, ignoring\n");
+        return;
+    }
+
+    DoUnlockCrate(crateId, keyId);
 }
 
 void ClientGC::UnlockCrate(GCMessageRead &messageRead)

@@ -25,16 +25,6 @@ message CMsgGCItemCustomizationNotification {
     optional uint32 request = 2;
 }
 
-// CS2's replacement for the deprecated struct-based k_EMsgGCUnlockCrate. Sent as
-// k_EMsgGCOpenCrate (2534) when opening a case: tool_item_id is the key, subject_item_id
-// is the crate.
-message CMsgOpenCrate {
-    optional uint64 tool_item_id = 1;
-    optional uint64 subject_item_id = 2;
-    optional bool for_rental = 3;
-    optional uint32 points_remaining = 4;
-}
-
 enum EGCItemMsg {
     k_EMsgGCBase = 1000;
     k_EMsgGCSetItemPosition = 1001;
@@ -180,7 +170,6 @@ enum EGCItemMsg {
     k_EMsgGCAdjustItemEquippedStateMulti = 2529;
     k_EMsgGCRecurringSubscriptionStatus = 2530;
     k_EMsgGCAdjustEquipSlots = 2531;
-    k_EMsgGCOpenCrate = 2534;
 }
 
 enum EGCMsgResponse {

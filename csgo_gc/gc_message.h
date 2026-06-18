@@ -12,6 +12,7 @@ public:
 
     bool IsValid() const { return !m_error; }
     bool IsProtobuf() const { return m_type & ProtobufMask; }
+    uint32_t BytesRemaining() const { return m_size - m_offset; }
     uint32_t TypeUnmasked() const { return m_type & ~ProtobufMask; }
     uint32_t TypeMasked() const { return m_type; }
     uint64_t JobId() const { return m_jobId; }
