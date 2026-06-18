@@ -2145,61 +2145,6 @@ static EGCResults Hk_GC_RetrieveMessage(void *thisptr, uint32 *punMsgType, void 
     return Og_GC_RetrieveMessage(thisptr, punMsgType, pubDest, cubDest, pcubMsgSize);
 }
 
-// CS2 uses SteamAPI_ManualDispatch_GetNextCallback instead of RegisterCallback
-// to receive GC callbacks. Hook it to:
-//  1. Log all callbacks the game receives (diagnostic)
-//  2. Inject GCMessageAvailable_t when our local GC queue has messages
-struct SteamManualDispatchMsg
-{
-    int32_t  m_hSteamUser;
-    int32_t  m_iCallback;
-    uint8_t *m_pubParam;
-    int32_t  m_cubParam;
-    uint32_t _pad;
-};
-static GCMessageAvailable_t s_injectedGCMsg{};
-static bool s_lastCallbackWasInjected = false;
-static bool (*Og_ManualDispatch_GetNextCallback)(HSteamPipe, SteamManualDispatchMsg *);
-static void (*Og_ManualDispatch_FreeLastCallback)(HSteamPipe);
-
-static bool Hk_ManualDispatch_GetNextCallback(HSteamPipe hPipe, SteamManualDispatchMsg *pMsg)
-{
-    bool result = Og_ManualDispatch_GetNextCallback(hPipe, pMsg);
-    if (result)
-    {
-        Platform::Print("csgo_gc: ManualDispatch_GetNextCallback: id=%d\n", pMsg->m_iCallback);
-        s_lastCallbackWasInjected = false;
-        return true;
-    }
-    // Inject GCMessageAvailable_t when our local GC queue has messages
-    if (s_clientGC)
-    {
-        uint32_t msgSize;
-        if (s_clientGC->m_messageQueue.IsMessageAvailable(msgSize))
-        {
-            s_injectedGCMsg.m_nMessageSize = msgSize;
-            pMsg->m_hSteamUser = SteamAPI_GetHSteamUser();
-            pMsg->m_iCallback  = GCMessageAvailable_t::k_iCallback; // 1701
-            pMsg->m_pubParam   = reinterpret_cast<uint8_t *>(&s_injectedGCMsg);
-            pMsg->m_cubParam   = sizeof(GCMessageAvailable_t);
-            s_lastCallbackWasInjected = true;
-            Platform::Print("csgo_gc: injecting GCMessageAvailable_t msgSize=%u\n", msgSize);
-            return true;
-        }
-    }
-    return false;
-}
-
-static void Hk_ManualDispatch_FreeLastCallback(HSteamPipe hPipe)
-{
-    if (s_lastCallbackWasInjected)
-    {
-        s_lastCallbackWasInjected = false;
-        return; // injected callback uses static memory — nothing to free in steamclient
-    }
-    Og_ManualDispatch_FreeLastCallback(hPipe);
-}
-
 static void AfterSteamInit(); // forward declaration — defined near Hk_SteamAPI_InitFlat
 
 static void HookGCVtable(void *realGC)
@@ -2236,103 +2181,6 @@ static void HookGCVtable(void *realGC)
 // Hk_GetISteamGenericInterface_direct passes through without interception.
 static bool s_fetchingRealGC = false;
 
-// Hook SteamInternal_ContextInit to discover the GC object pointer the game uses.
-// The context (returned as a1+16) is an array of interface pointers populated by
-// the game binary's own init function. We scan it for any pointer whose vtable
-// matches known ISteamGameCoordinator layouts and patch it.
-static void *(*Og_SteamInternal_ContextInit)(void *);
-
-// Vtable addresses of GC objects discovered via ContextInit (for routing in hooks).
-static uintptr_t s_gcClientVtableSlot0 = 0; // SendMessage of the client GC class
-
-static void *Hk_SteamInternal_ContextInit(void *pContextData)
-{
-    void *result = Og_SteamInternal_ContextInit(pContextData);
-    if (!result)
-        return result;
-
-    uintptr_t *ctx = reinterpret_cast<uintptr_t *>(result);
-    for (int i = 0; i < 64; i++)
-    {
-        uintptr_t ptr = ctx[i];
-        if (!ptr || (ptr & 7))
-            continue;
-        uintptr_t *vtable = nullptr;
-        __try { vtable = *reinterpret_cast<uintptr_t **>(ptr); } __except(1) { continue; }
-        if (!vtable)
-            continue;
-        uintptr_t fn0 = 0, fn1 = 0, fn2 = 0;
-        __try { fn0 = vtable[0]; fn1 = vtable[1]; fn2 = vtable[2]; } __except(1) { continue; }
-        if (!fn0 || !fn1 || !fn2 || fn0 == fn1 || fn1 == fn2)
-            continue;
-
-        // Check if vtable is in steamclient64.dll
-        HMODULE mod = nullptr;
-        if (!GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS|GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                reinterpret_cast<LPCSTR>(fn0), &mod))
-            continue;
-        char name[64] = {};
-        GetModuleFileNameA(mod, name, sizeof(name));
-        if (!strstr(name, "steamclient"))
-            continue;
-
-        // Log the object for analysis — do NOT patch yet (wrong vtable caused crash).
-        // Compare fn0 with our known GC vtable to identify the real ISteamGameCoordinator.
-        const char *gcMatch = (Og_GC_SendMessage && fn0 == reinterpret_cast<uintptr_t>(Og_GC_SendMessage))
-            ? " <== MATCHES GC vtable" : "";
-        Platform::Print("csgo_gc: ContextInit ctx[%d]=%p vtable=[%p,%p,%p]%s\n",
-            i, (void*)ptr, (void*)fn0, (void*)fn1, (void*)fn2, gcMatch);
-    }
-    return result;
-}
-
-// Raw steamclient64 callback pump — called by both RunCallbacks and ManualDispatch.
-// Signature: bool Steam_BGetCallback(HSteamPipe, CallbackMsg_t*, bool* pbServer)
-struct SteamRawCallbackMsg { int hUser; int id; uint8_t *data; int size; };
-static bool (*Og_Steam_BGetCallback)(HSteamPipe, SteamRawCallbackMsg *, bool *);
-
-static void (*Og_Steam_FreeLastCallback)(HSteamPipe);
-static GCMessageAvailable_t s_bgetInjectedMsg{};
-static bool s_bgetLastWasInjected = false;
-
-static void Hk_Steam_FreeLastCallback(HSteamPipe hPipe)
-{
-    if (s_bgetLastWasInjected)
-    {
-        s_bgetLastWasInjected = false;
-        return;
-    }
-    Og_Steam_FreeLastCallback(hPipe);
-}
-
-static bool Hk_Steam_BGetCallback(HSteamPipe hPipe, SteamRawCallbackMsg *pMsg, bool *pbServer)
-{
-    bool result = Og_Steam_BGetCallback(hPipe, pMsg, pbServer);
-    if (result)
-    {
-        Platform::Print("csgo_gc: Steam_BGetCallback id=%d server=%d\n", pMsg->id, (int)*pbServer);
-        s_bgetLastWasInjected = false;
-        return true;
-    }
-    // Inject GCMessageAvailable_t (id=1701) when our ClientGC queue has messages.
-    if (s_clientGC)
-    {
-        uint32_t msgSize;
-        if (s_clientGC->m_messageQueue.IsMessageAvailable(msgSize))
-        {
-            s_bgetInjectedMsg.m_nMessageSize = msgSize;
-            pMsg->hUser = SteamAPI_GetHSteamUser();
-            pMsg->id    = GCMessageAvailable_t::k_iCallback; // 1701
-            pMsg->data  = reinterpret_cast<uint8_t *>(&s_bgetInjectedMsg);
-            pMsg->size  = sizeof(GCMessageAvailable_t);
-            *pbServer   = false;
-            s_bgetLastWasInjected = true;
-            Platform::Print("csgo_gc: Steam_BGetCallback injecting GCMessageAvailable_t size=%u\n", msgSize);
-            return true;
-        }
-    }
-    return false;
-}
 #endif
 
 // Hook for GetISteamGenericInterface on SteamClient versions newer than 020.
@@ -2580,8 +2428,8 @@ static void *Hk_SteamInternal_FindOrCreateUserInterface(HSteamUser hSteamUser, c
 
 static void Hk_SteamAPI_RegisterCallback(class CCallbackBase *pCallback, int iCallback)
 {
-    Platform::Print("csgo_gc: SteamAPI_RegisterCallback id=%d intercepted=%d\n",
-        iCallback, (int)ShouldHookCallback(iCallback));
+    if (iCallback == GCMessageAvailable_t::k_iCallback)
+        Platform::Print("csgo_gc: SteamAPI_RegisterCallback id=%d (GCMessageAvailable)\n", iCallback);
 
     if (s_callbackHooks.RegisterCallback(pCallback, iCallback))
     {
@@ -2831,29 +2679,6 @@ static void InstallSteamClientHooks(void *preloadedModule = nullptr)
 
     INLINE_HOOK(CreateInterface);
 
-#ifdef _WIN32
-    // Hook Steam_BGetCallback / Steam_FreeLastCallback from steamclient64.
-    // These are the raw callback pump used by RunCallbacks and ManualDispatch.
-    {
-        void *fnBGet  = GetProcAddress(steamclientModule, "Steam_BGetCallback");
-        void *fnFree  = GetProcAddress(steamclientModule, "Steam_FreeLastCallback");
-        if (fnBGet)
-        {
-            HookCreate("Steam_BGetCallback", fnBGet,
-                reinterpret_cast<void *>(Hk_Steam_BGetCallback),
-                reinterpret_cast<void **>(&Og_Steam_BGetCallback));
-            Platform::Print("csgo_gc: hooked Steam_BGetCallback\n");
-        }
-        if (fnFree)
-        {
-            HookCreate("Steam_FreeLastCallback", fnFree,
-                reinterpret_cast<void *>(Hk_Steam_FreeLastCallback),
-                reinterpret_cast<void **>(&Og_Steam_FreeLastCallback));
-            Platform::Print("csgo_gc: hooked Steam_FreeLastCallback\n");
-        }
-    }
-#endif
-
     // steam api hooks for gc callbacks
     INLINE_HOOK(SteamAPI_RegisterCallback);
     INLINE_HOOK(SteamAPI_UnregisterCallback);
@@ -2887,45 +2712,6 @@ static void InstallSteamClientHooks(void *preloadedModule = nullptr)
 
 static bool s_deferredDedicated;
 
-#ifdef _WIN32
-// Direct hooks on CClientGameCoordinator methods inside steamclient64.dll.
-// CClientGameCoordinator takes HSteamPipe as second arg (the adapter passes 0).
-static bool s_gcInnerHooked = false;
-static EGCResults (*Og_CClientGC_SendMessage)(void *, int, uint32, const void *, uint32);
-static bool      (*Og_CClientGC_IsMessageAvailable)(void *, int, uint32 *);
-static EGCResults (*Og_CClientGC_RetrieveMessage)(void *, int, uint32 *, void *, uint32, uint32 *);
-
-static EGCResults Hk_CClientGC_SendMessage(void *thisptr, int pipe, uint32 msgType, const void *data, uint32 size)
-{
-    Platform::Print("csgo_gc: CClientGC_SendMessage type=%u size=%u\n", msgType, size);
-    if (s_clientGC)
-    {
-        s_clientGC->m_gc.PostToGC(GCEvent::Message, msgType, data, size);
-        return k_EGCResultOK;
-    }
-    return Og_CClientGC_SendMessage(thisptr, pipe, msgType, data, size);
-}
-
-static bool Hk_CClientGC_IsMessageAvailable(void *thisptr, int pipe, uint32 *pSize)
-{
-    if (s_clientGC)
-        return s_clientGC->m_messageQueue.IsMessageAvailable(*pSize);
-    return Og_CClientGC_IsMessageAvailable(thisptr, pipe, pSize);
-}
-
-static EGCResults Hk_CClientGC_RetrieveMessage(void *thisptr, int pipe, uint32 *pType, void *pDest, uint32 destSize, uint32 *pSize)
-{
-    if (s_clientGC)
-    {
-        bool ok = s_clientGC->m_messageQueue.RetrieveMessage(*pType, pDest, destSize, *pSize);
-        if (!ok)
-            return destSize < *pSize ? k_EGCResultBufferTooSmall : k_EGCResultNoMessage;
-        Platform::Print("csgo_gc: CClientGC_RetrieveMessage type=%u size=%u\n", *pType, *pSize);
-        return k_EGCResultOK;
-    }
-    return Og_CClientGC_RetrieveMessage(thisptr, pipe, pType, pDest, destSize, pSize);
-}
-#endif
 
 #ifdef _WIN32
 // CS2 uses SteamAPI_InitFlat (not SteamAPI_Init). After it returns, Steam is fully
@@ -2962,34 +2748,6 @@ static void AfterSteamInit()
     if (realGC)
     {
         HookGCVtable(realGC);
-        // Log the inner CClientGameCoordinator vtable so we can hook it directly.
-        uintptr_t innerObj = *reinterpret_cast<uintptr_t *>(reinterpret_cast<uintptr_t>(realGC) + 8);
-        if (innerObj)
-        {
-            uintptr_t *innerVtable = *reinterpret_cast<uintptr_t **>(innerObj);
-            Platform::Print("csgo_gc: CClientGC inner=%p vtable[0]=%p [1]=%p [2]=%p\n",
-                (void *)innerObj, (void *)innerVtable[0], (void *)innerVtable[1], (void *)innerVtable[2]);
-
-            // Hook CClientGameCoordinator methods directly in steamclient64 so we
-            // intercept GC communication regardless of which wrapper the game uses.
-            if (!s_gcInnerHooked)
-            {
-                HookCreate("CClientGC_SendMessage",
-                    reinterpret_cast<void *>(innerVtable[0]),
-                    reinterpret_cast<void *>(Hk_CClientGC_SendMessage),
-                    reinterpret_cast<void **>(&Og_CClientGC_SendMessage));
-                HookCreate("CClientGC_IsMessageAvailable",
-                    reinterpret_cast<void *>(innerVtable[1]),
-                    reinterpret_cast<void *>(Hk_CClientGC_IsMessageAvailable),
-                    reinterpret_cast<void **>(&Og_CClientGC_IsMessageAvailable));
-                HookCreate("CClientGC_RetrieveMessage",
-                    reinterpret_cast<void *>(innerVtable[2]),
-                    reinterpret_cast<void *>(Hk_CClientGC_RetrieveMessage),
-                    reinterpret_cast<void **>(&Og_CClientGC_RetrieveMessage));
-                s_gcInnerHooked = true;
-                Platform::Print("csgo_gc: CClientGameCoordinator methods hooked\n");
-            }
-        }
     }
 
     // Create s_cs2GCProxy (which creates s_clientGC via SteamGameCoordinatorProxy ctor).
@@ -3103,33 +2861,6 @@ void SteamHookPreInstall(bool dedicated)
             Platform::Print("csgo_gc: neither SteamAPI_InitFlat nor SteamAPI_Init found\n");
         }
 
-        // Hook SteamInternal_ContextInit to discover what GC object the game uses.
-        void *fnCtxInit = steamApi ? GetProcAddress(steamApi, "SteamInternal_ContextInit") : nullptr;
-        if (fnCtxInit)
-        {
-            HookCreate("SteamInternal_ContextInit", fnCtxInit,
-                reinterpret_cast<void *>(Hk_SteamInternal_ContextInit),
-                reinterpret_cast<void **>(&Og_SteamInternal_ContextInit));
-            Platform::Print("csgo_gc: hooked SteamInternal_ContextInit\n");
-        }
-
-        // Hook ManualDispatch functions to inject GCMessageAvailable_t callbacks.
-        void *fnGetNext = steamApi ? GetProcAddress(steamApi, "SteamAPI_ManualDispatch_GetNextCallback") : nullptr;
-        void *fnFree    = steamApi ? GetProcAddress(steamApi, "SteamAPI_ManualDispatch_FreeLastCallback") : nullptr;
-        if (fnGetNext)
-        {
-            HookCreate("SteamAPI_ManualDispatch_GetNextCallback", fnGetNext,
-                reinterpret_cast<void *>(Hk_ManualDispatch_GetNextCallback),
-                reinterpret_cast<void **>(&Og_ManualDispatch_GetNextCallback));
-            Platform::Print("csgo_gc: hooked SteamAPI_ManualDispatch_GetNextCallback\n");
-        }
-        if (fnFree)
-        {
-            HookCreate("SteamAPI_ManualDispatch_FreeLastCallback", fnFree,
-                reinterpret_cast<void *>(Hk_ManualDispatch_FreeLastCallback),
-                reinterpret_cast<void **>(&Og_ManualDispatch_FreeLastCallback));
-            Platform::Print("csgo_gc: hooked SteamAPI_ManualDispatch_FreeLastCallback\n");
-        }
     }
 
     // steamclient64.dll is loaded lazily by CS2's engine init, not at launcher startup.
