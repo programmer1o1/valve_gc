@@ -215,60 +215,49 @@ void Inventory::ReadFromFile()
         }
     }
 
-    // Normalize equipped_state against the schema.
-    //
-    // User/editor-provided equipped_state frequently has the wrong team (class) or slot:
-    // e.g. a CT-only USP-S equipped for T, or an AK (T-only) equipped for CT. CS2's game
-    // server can't place such an item into a valid loadout slot for that team, so it falls
-    // back to the team's default weapon (a plain P2000, no skin) — exactly the "skins don't
-    // apply / USP-S becomes P2000" symptom.
-    //
-    // The schema knows the authoritative (slot, valid classes) for every loadout item, so
-    // for any item the schema recognizes we derive equipped_state from it rather than trust
-    // the file. Items the schema doesn't recognize (e.g. music kits) keep their own state.
-    //
-    // Two passes so explicitly-equipped items claim their slots before auto-equipped skins.
+    // Auto-equip items that have a paint kit but no equipped_state.
+    // Tracks which (class, slot) pairs are already taken to avoid double-equipping.
     std::set<std::pair<uint32_t, uint32_t>> takenSlots;
+    for (auto &pair : m_items)
+    {
+        for (const CSOEconItemEquipped &eq : pair.second.equipped_state())
+            takenSlots.emplace(eq.new_class(), eq.new_slot());
+    }
 
-    auto applySchemaEquip = [&](CSOEconItem &item) {
+    for (auto &pair : m_items)
+    {
+        CSOEconItem &item = pair.second;
+        if (item.equipped_state_size() > 0)
+            continue;
+
+        // Only auto-equip items with a paint kit attribute (skins)
+        bool hasPaintKit = false;
+        for (const CSOEconItemAttribute &attr : item.attribute())
+        {
+            if (attr.def_index() == ItemSchema::AttributeTexturePrefab)
+            {
+                hasPaintKit = true;
+                break;
+            }
+        }
+        if (!hasPaintKit)
+            continue;
+
         uint32_t slot = 0, classes = 0;
         if (!m_itemSchema.GetItemLoadoutInfo(item.def_index(), slot, classes))
-            return; // not a known loadout item — leave its equipped_state untouched
+            continue;
 
-        item.clear_equipped_state();
         for (uint32_t classId = 2; classId <= 3; classId++)
         {
             if (!(classes & (1u << classId)))
                 continue;
-            if (!takenSlots.emplace(classId, slot).second)
-                continue; // another item already occupies this (class, slot)
+            if (takenSlots.count({ classId, slot }))
+                continue;
             CSOEconItemEquipped *eq = item.add_equipped_state();
             eq->set_new_class(classId);
             eq->set_new_slot(slot);
+            takenSlots.emplace(classId, slot);
         }
-    };
-
-    auto hasPaintKit = [](const CSOEconItem &item) {
-        for (const CSOEconItemAttribute &attr : item.attribute())
-        {
-            if (attr.def_index() == ItemSchema::AttributeTexturePrefab)
-                return true;
-        }
-        return false;
-    };
-
-    // Pass 1: items the user explicitly equipped — fix their teams/slot from the schema.
-    for (auto &pair : m_items)
-    {
-        if (pair.second.equipped_state_size() > 0)
-            applySchemaEquip(pair.second);
-    }
-
-    // Pass 2: auto-equip skins (paint kit) that the user did not explicitly equip.
-    for (auto &pair : m_items)
-    {
-        if (pair.second.equipped_state_size() == 0 && hasPaintKit(pair.second))
-            applySchemaEquip(pair.second);
     }
 
     Platform::Print("Inventory: loaded %zu items from %s\n", m_items.size(), InventoryFilePath);
