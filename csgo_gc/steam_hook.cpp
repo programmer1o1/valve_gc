@@ -107,6 +107,16 @@ public:
         dest.buffer = std::move(buffer);
     }
 
+    // Discard the front message without copying it. Used as a freeze-safety when a
+    // consumer keeps asking for a message but never supplies a large enough buffer.
+    void DropMessage()
+    {
+        if (!m_messages.empty())
+        {
+            m_messages.pop();
+        }
+    }
+
 private:
     struct Message
     {
@@ -2129,7 +2139,12 @@ static EGCResults Hk_GC_SendMessage(void *thisptr, uint32 unMsgType, const void 
 static bool Hk_GC_IsMessageAvailable(void *thisptr, uint32 *pcubMsgSize)
 {
     if (s_clientGC)
-        return s_clientGC->m_messageQueue.IsMessageAvailable(*pcubMsgSize);
+    {
+        bool avail = s_clientGC->m_messageQueue.IsMessageAvailable(*pcubMsgSize);
+        if (avail)
+            Platform::Print("csgo_gc: GC_IsMessageAvailable -> 1 size=%u\n", *pcubMsgSize);
+        return avail;
+    }
     return Og_GC_IsMessageAvailable(thisptr, pcubMsgSize);
 }
 
@@ -2139,8 +2154,22 @@ static EGCResults Hk_GC_RetrieveMessage(void *thisptr, uint32 *punMsgType, void 
     {
         bool result = s_clientGC->m_messageQueue.RetrieveMessage(*punMsgType, pubDest, cubDest, *pcubMsgSize);
         if (!result)
-            return cubDest < *pcubMsgSize ? k_EGCResultBufferTooSmall : k_EGCResultNoMessage;
-        Platform::Print("csgo_gc: GC_RetrieveMessage type=%u size=%u\n", *punMsgType, *pcubMsgSize);
+        {
+            // Buffer too small: real Steam returns BufferTooSmall and KEEPS the message so
+            // the caller retries with a bigger buffer. But CS2's pump (sub_18151D740) is a
+            // tight `while (IsMessageAvailable) RetrieveMessage` loop — if it does not grow
+            // the buffer, leaving the message in the queue spins forever and FREEZES the
+            // client. Drop the message to guarantee forward progress and log the mismatch.
+            if (cubDest < *pcubMsgSize)
+            {
+                Platform::Print("csgo_gc: GC_RetrieveMessage BUFFER TOO SMALL cubDest=%u need=%u — dropping to avoid freeze\n",
+                    cubDest, *pcubMsgSize);
+                s_clientGC->m_messageQueue.DropMessage();
+                return k_EGCResultBufferTooSmall;
+            }
+            return k_EGCResultNoMessage;
+        }
+        Platform::Print("csgo_gc: GC_RetrieveMessage type=%u size=%u cubDest=%u\n", *punMsgType, *pcubMsgSize, cubDest);
         return k_EGCResultOK;
     }
     return Og_GC_RetrieveMessage(thisptr, punMsgType, pubDest, cubDest, pcubMsgSize);
