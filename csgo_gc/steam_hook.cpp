@@ -1748,6 +1748,11 @@ inline Interface *GetOrCreate(std::unique_ptr<Proxy> &pointer, Args &&...args)
     return static_cast<Interface *>(pointer.get());
 }
 
+#ifdef _WIN32
+static SteamGameCoordinatorProxy *s_cs2GCProxy;
+static SteamGameCoordinatorProxy *s_cs2GCProxyServer;
+#endif
+
 class SteamInterfaceProxy
 {
 public:
@@ -2335,8 +2340,6 @@ static bool Hk_Steam_BGetCallback(HSteamPipe hPipe, SteamRawCallbackMsg *pMsg, b
 // when CS2 calls methods added in later versions). Instead we hook the function itself.
 #ifdef _WIN32
 static bool s_gcIfaceHookInstalled = false;
-static SteamGameCoordinatorProxy *s_cs2GCProxy;
-static SteamGameCoordinatorProxy *s_cs2GCProxyServer;
 // Remember the client's pipe/user so we can route re-requests back to the
 // client proxy instead of the server proxy.
 static HSteamUser s_clientHSteamUser = 0;

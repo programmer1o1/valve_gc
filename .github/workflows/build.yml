@@ -23,8 +23,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - if: matrix.os != 'windows-2022'
-      name: Run sccache-cache
+    - name: Run sccache-cache
       uses: mozilla-actions/sccache-action@v0.0.9
 
     - if: matrix.os == 'ubuntu-latest'
@@ -40,25 +39,27 @@ jobs:
       run: |
         mkdir ${{ github.workspace }}/release
         cmake -B ${{ github.workspace }}/build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -S ${{ github.workspace }} -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache -DOUTDIR=${{ github.workspace }}/release
-        cmake --build ${{ github.workspace }}/build --config ${{ matrix.build_type }} --target csgo cs2ds csgo_gc
+        cmake --build ${{ github.workspace }}/build --config ${{ matrix.build_type }} --target csgo cs2ds csgo_gc --parallel
         cmake -B ${{ github.workspace }}/build_ds -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -S ${{ github.workspace }} -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache -DCMAKE_C_FLAGS=-m32 -DCMAKE_CXX_FLAGS=-m32 -DCMAKE_ASM_FLAGS=-m32 -DOUTDIR=${{ github.workspace }}/release
-        cmake --build ${{ github.workspace }}/build_ds --config ${{ matrix.build_type }} --target srcds csgo_gc
+        cmake --build ${{ github.workspace }}/build_ds --config ${{ matrix.build_type }} --target srcds csgo_gc --parallel
 
     - if: matrix.os == 'macos-latest'
       name: Build macOS
       run: |
         mkdir ${{ github.workspace }}/release
         cmake -B ${{ github.workspace }}/build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -S ${{ github.workspace }} -DCMAKE_OSX_ARCHITECTURES=x86_64 -DFUNCHOOK_CPU=x86 -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache -DOUTDIR=${{ github.workspace }}/release
-        cmake --build ${{ github.workspace }}/build --config ${{ matrix.build_type }} --target csgo csgo_gc
+        cmake --build ${{ github.workspace }}/build --config ${{ matrix.build_type }} --target csgo csgo_gc --parallel
 
     - if: matrix.os == 'windows-2022'
       name: Build Windows
+      env:
+        SCCACHE_GHA_ENABLED: "true"
       run: |
         mkdir ${{ github.workspace }}/release
-        cmake -A Win32 -B ${{ github.workspace }}/build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -S ${{ github.workspace }} -DOUTDIR=${{ github.workspace }}/release
-        cmake --build ${{ github.workspace }}/build --config ${{ matrix.build_type }} --target csgo srcds csgo_gc
-        cmake -A x64 -B ${{ github.workspace }}/build_x64 -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -S ${{ github.workspace }} -DOUTDIR=${{ github.workspace }}/release
-        cmake --build ${{ github.workspace }}/build_x64 --config ${{ matrix.build_type }} --target cs2 csgo_gc
+        cmake -A Win32 -B ${{ github.workspace }}/build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -S ${{ github.workspace }} -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache -DOUTDIR=${{ github.workspace }}/release
+        cmake --build ${{ github.workspace }}/build --config ${{ matrix.build_type }} --target csgo srcds csgo_gc -- /maxcpucount
+        cmake -A x64 -B ${{ github.workspace }}/build_x64 -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -S ${{ github.workspace }} -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache -DOUTDIR=${{ github.workspace }}/release
+        cmake --build ${{ github.workspace }}/build_x64 --config ${{ matrix.build_type }} --target cs2 csgo_gc -- /maxcpucount
 
     - name: Package
       shell: bash
