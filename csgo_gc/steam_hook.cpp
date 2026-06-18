@@ -1751,6 +1751,7 @@ inline Interface *GetOrCreate(std::unique_ptr<Proxy> &pointer, Args &&...args)
 #ifdef _WIN32
 static SteamGameCoordinatorProxy *s_cs2GCProxy;
 static SteamGameCoordinatorProxy *s_cs2GCProxyServer;
+static SteamGameServerProxy *s_steamGameServerProxy; // intercepted via FindOrCreateUserInterface
 #endif
 
 class SteamInterfaceProxy
@@ -2420,6 +2421,19 @@ static void *Hk_SteamInternal_FindOrCreateUserInterface(HSteamUser hSteamUser, c
             s_cs2GCProxyServer = new SteamGameCoordinatorProxy(0);
         }
         return s_cs2GCProxyServer;
+    }
+
+    // Intercept SteamGameServer* so BeginAuthSession always goes through our proxy.
+    // The global SteamGameServer() accessor calls FindOrCreateUserInterface directly,
+    // bypassing SteamClientProxy, so we must intercept it here.
+    if (strncmp(pszVersion, "SteamGameServer", 15) == 0 && result)
+    {
+        if (!s_steamGameServerProxy)
+        {
+            Platform::Print("csgo_gc: intercepted %s via FindOrCreateUserInterface\n", pszVersion);
+            s_steamGameServerProxy = new SteamGameServerProxy(static_cast<ISteamGameServer *>(result));
+        }
+        return s_steamGameServerProxy;
     }
 
     return result;
