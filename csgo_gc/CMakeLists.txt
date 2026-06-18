@@ -31,6 +31,9 @@ set_target_properties(csgo_gc PROPERTIES PREFIX "")
 if (MSVC)
     target_compile_options(csgo_gc PRIVATE /W4 /wd4244)
     target_compile_definitions(csgo_gc PRIVATE _CRT_SECURE_NO_WARNINGS)
+    # Emit a linker map so crash dumps (which report only csgo_gc.dll+offset) can be
+    # mapped back to function names. Shipped alongside the dll (see OUTDIR copy below).
+    target_link_options(csgo_gc PRIVATE /MAP)
 else()
     target_compile_options(csgo_gc PRIVATE -Wall -Wextra)
 endif()
@@ -56,4 +59,12 @@ if (OUTDIR)
         COMMAND ${CMAKE_COMMAND} -E copy
         $<TARGET_FILE:csgo_gc>
         ${OUTDIR}/csgo_gc/${GC_LIB_DIR}/$<TARGET_FILE_NAME:csgo_gc>)
+
+    # Ship the linker map next to the dll for crash symbolization (Windows/MSVC only).
+    if (MSVC)
+        add_custom_command(TARGET csgo_gc POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            $<TARGET_FILE_DIR:csgo_gc>/csgo_gc.map
+            ${OUTDIR}/csgo_gc/${GC_LIB_DIR}/csgo_gc.map)
+    endif()
 endif()
