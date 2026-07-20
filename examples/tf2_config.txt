@@ -14,5 +14,8 @@
 
 // 0 = don't log anything
 // 1 = log to in-game console
-// 2 = log to in-game console and file (gc_log.txt)
-"log_output"	"1"
+// 2 = log to in-game console and file (tf2_gc/gc_log.txt)
+// set to 2 here (rather than csgo_gc's default of 1): the in-game console
+// print path depends on finding tier0.dll's ConColorMsg export, unverified
+// for TF2's engine build, so the file is the reliable fallback for now.
+"log_output"	"2"

@@ -11,16 +11,24 @@ static ConColorMsg_t s_ConColorMsg;
 
 static char s_logPath[MAX_PATH];
 
+// Defaults to "csgo_gc" (CS:GO/CS2, unchanged); the tf2_gc target overrides
+// this to "tf2_gc" (see tf2_gc_hook/CMakeLists.txt). Without this, file
+// logging silently no-ops in a TF2 install since there's no "csgo_gc"
+// directory to write into.
+#if !defined(GC_MODULE_NAME)
+#define GC_MODULE_NAME "csgo_gc"
+#endif
+
 const char *DataDir()
 {
-    return "../../csgo_gc/";   // relative to game\bin\win64\ (CS2 runtime CWD)
+    return "../../" GC_MODULE_NAME "/";   // relative to game\bin\win64\ (CS2 runtime CWD)
 }
 
 void Initialize()
 {
     // Resolve the log path to an absolute path now (CWD is correct at init time).
     // This ensures Print() works from any thread regardless of later CWD changes.
-    static const char *kRelPaths[] = { "../../csgo_gc/gc_log.txt", "csgo_gc/gc_log.txt" };
+    static const char *kRelPaths[] = { "../../" GC_MODULE_NAME "/gc_log.txt", GC_MODULE_NAME "/gc_log.txt" };
     s_logPath[0] = '\0';
     for (const char *rel : kRelPaths)
     {
