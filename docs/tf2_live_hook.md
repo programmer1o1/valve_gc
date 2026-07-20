@@ -109,6 +109,26 @@ IDA to find the actual cause instead of guessing:
   replicate this check, but since we no longer tear down our own session,
   this shouldn't matter in practice.
 
+## First real launch result (2026-07-20, after the steamclient64.dll fix)
+
+Hook attached and the GCSDK handshake worked: console showed
+`CTFGCClientSystem::PostInitGC`, `CTFGCClientSystem - adding listener`, and
+`Connection to game coordinator established.` Ranking loaded correctly, but
+the item/economy backend ("Item Server") failed to connect and the loadout
+didn't load. Root cause: **the release zip never shipped a `tf2_gc/config.txt`**,
+so `GCConfig::AppIdOverride()` fell back to its default of `730` (CS:GO/CS2's
+appid) instead of TF2's `440`. `SteamHookInstall()` sets the `SteamAppId`
+environment variable from that value *before* the real `launcher.dll` runs its
+own Steam init, so the process's Steam session likely got tagged with the
+wrong appid for anything appid-specific (item/economy), while appid-agnostic
+things (login, ranking) worked fine regardless. Fixed by adding
+`examples/tf2_config.txt` (`"game" "tf2"`, `"appid_override" "440"`) and
+packaging it as `tf2_gc/config.txt` in CI, same as `csgo_gc/config.txt`.
+
+Not yet confirmed whether this alone fixes the item server / loadout, or
+whether `ClientGCTF2`'s SO cache response has an additional problem — next
+test will tell.
+
 ## Known gaps / what to check on first real launch
 
 - **`GameProfile` interface strings are still guesses.** `g_profileTF2`
@@ -125,10 +145,9 @@ IDA to find the actual cause instead of guessing:
 - **Deployment layout**, verified against a real TF2 install (game root has
   `bin/`, `hl2/`, `platform/`, `tf/`, `tf.exe`, `tf_win64.exe`,
   `steam_appid.txt`; no macOS/arm64 client exists anymore, see below):
-  - copy `examples/tf2_items_game.txt` -> `tf2_gc/tf2_items_game.txt`
-  - copy `examples/tf2_unusual_inventory.txt` -> `tf2_gc/tf2_inventory.txt`
-  - create `tf2_gc/config.txt` with `"game" "tf2"` and `"appid_override" "440"`
-    (see `csgo_gc/config.txt` for the format `GCConfig` parses)
+  - the release zip now bundles `tf2_gc/config.txt` (from
+    `examples/tf2_config.txt`), `tf2_gc/tf2_items_game.txt`, and
+    `tf2_gc/tf2_inventory.txt` automatically -- no manual copying needed
   - back up `tf.exe`/`tf_win64.exe` (or `tf_linux64` on Linux) and replace
     with the built `tf`/`tf_win64` binary from the same release zip
 - **No macOS testing is possible.** Valve pulled TF2's macOS binaries in

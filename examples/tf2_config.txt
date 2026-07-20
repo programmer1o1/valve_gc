@@ -1,0 +1,18 @@
+// minimal config for the tf2_gc target. Most of csgo_gc's config.txt keys
+// (ranks, rarity_weights, medals, xp_per_round, ...) are CS:GO-specific and
+// unused by ClientGCTF2 -- only "game" and "appid_override" matter here.
+
+// which game to target -- must be "tf2" for the tf2_gc build
+"game"	"tf2"
+
+// TF2's real Steam app id. Without this, GCConfig::AppIdOverride() defaults
+// to 730 (CS:GO/CS2's shared appid), which sets the wrong SteamAppId
+// environment variable before the real game even starts its own Steam
+// session -- symptom: generic Steam stuff (login, ranking) works, but
+// anything appid-specific (item/economy server) fails.
+"appid_override"	"440"
+
+// 0 = don't log anything
+// 1 = log to in-game console
+// 2 = log to in-game console and file (gc_log.txt)
+"log_output"	"1"
