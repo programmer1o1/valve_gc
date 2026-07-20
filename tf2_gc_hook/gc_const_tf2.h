@@ -2,10 +2,9 @@
 
 #include <cstdint>
 
-// TF2-specific GC constants. Best-effort values ported from publicly
-// documented TF2 schema/wire data (TF2 Wiki attribute list, Steam Web API
-// ISteamEconomy/GetSchema); NOT verified against a live TF2 client.
-// See docs/tf2_live_hook.md.
+// TF2-specific GC constants. See docs/tf2_live_hook.md for how each of these
+// was verified (either against a real items_game.txt/GCSDK source, or against
+// a live TF2 client).
 
 // CSOEconItemAttribute def_index for "attach particle effect" (drives
 // Unusual hat effects). Value is stored as a float bit-pattern in the
@@ -30,3 +29,11 @@ enum QualityTF2 : uint32_t
 // origin enum) here instead was a candidate reason real-defindex items still
 // didn't show up in a live test.
 constexpr uint32_t ItemOriginBaseItemTF2 = 22;
+
+// CMsgAdjustItemEquippedState.item_id / .new_slot sentinels for "unequip",
+// matching csgo_gc/inventory.cpp's ItemIdInvalid/SlotUneqip constants (same
+// generic message/semantics -- confirmed TF2's real client sends this exact
+// message via CInventoryManager::UpdateInventoryEquippedState in
+// econ_item_inventory.cpp).
+constexpr uint64_t ItemIdInvalidTF2 = 0;
+constexpr uint32_t SlotUnequipTF2 = 0xffff;

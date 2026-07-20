@@ -4,12 +4,12 @@ This documents the `tf2_gc` target: a second, separate GC dylib that wires
 milestone 1's TF2 item-schema/inventory parser (`tf2_gc/`) into the same
 hook/threading/job-id plumbing `csgo_gc` uses for CS:GO/CS2.
 
-**Status (2026-07-21): confirmed working against a real TF2 client.** The
-hook attaches, the GCSDK handshake completes, and the injected backpack
-(hats + a diagnostic stock weapon) shows up in-game — see "Seventh real
-launch result" below for the bug that was blocking this and how it was
-found. Known remaining gap: equipping items isn't implemented yet (see
-"Known gaps").
+**Status (2026-07-21): backpack display confirmed working against a real TF2
+client.** The hook attaches, the GCSDK handshake completes, and the
+injected backpack (hats + a diagnostic stock weapon) shows up in-game —
+see "Seventh real launch result" below for the bug that was blocking this
+and how it was found. Equip handling (`k_EMsgGCAdjustItemEquippedState`)
+was added right after but is **not yet verified live** -- see "Known gaps".
 
 ## What it does
 
@@ -32,11 +32,25 @@ found. Known remaining gap: equipping items isn't implemented yet (see
   ("attach particle effect", publicly documented on the TF2 Wiki) with the
   particle system id stored as a float bit-pattern in `CSOEconItemAttribute.value`
   — same convention CS:GO uses for its own attributes.
+- Equipping is implemented: `ClientGCTF2` keeps a live, mutable
+  `itemId -> CSOEconItem` map (`m_liveItems`, built once at startup from the
+  parsed inventory) and handles `k_EMsgGCAdjustItemEquippedState` the same
+  way `csgo_gc/inventory.cpp`'s `Inventory::EquipItem`/`UnequipItem` do:
+  unequip whatever else occupies the target (class, slot), then append a
+  `CSOEconItemEquipped{new_class, new_slot}` entry to the target item and
+  send the change via `k_ESOMsg_UpdateMultiple`. Confirmed via the real
+  client source (`econ_item_inventory.cpp`'s
+  `CInventoryManager::UpdateInventoryEquippedState`) that this is the exact
+  message TF2 sends — no TF2-specific equip message exists, it's shared
+  generic econ infrastructure. `BuildBackpackSOCache` now serializes from
+  `m_liveItems` (reflecting current equip state) instead of rebuilding items
+  fresh from the parsed inventory every time, so equips persist across SO
+  cache resends within a session (not across restarts -- see Known gaps).
 
 ## What it deliberately does NOT do
 
 - No crafting, trading, case opening/unlocking, store, or MvM/Halloween
-  messages. Only the client-hello -> backpack-SO-cache path is implemented.
+  messages. Only backpack display + equipping are implemented.
 - No in-match cosmetic visibility to other players or game servers.
   `NetworkingClientTF2`/`NetworkingServerTF2` and `ServerGCTF2`
   (`tf2_gc_hook/networking_*_tf2.h`, `gc_server_tf2.h`) are all no-op stand-ins
@@ -424,11 +438,17 @@ would need.
   `tf` launcher target still builds on macOS in CI for consistency, but
   there's no real TF2 client left to hook there. Test on Windows or Linux
   (Linux got a 64-bit client/server executable in the same April 2024 update).
-- **Equipping items is not implemented.** Backpack items display, but there's
-  no `AdjustEquipSlots`/`AdjustItemEquippedState`-equivalent handler and no
-  `SOTypeEquipSlot` objects are built, so nothing is wired up to actually
-  change what's equipped. This is the next feature to add.
+- **Equip state doesn't persist across restarts.** `ClientGCTF2::EquipItem`
+  mutates `m_liveItems` in memory only; there's no
+  `csgo_gc/inventory.cpp`-style `Save()`/`ReadFromFile()` round-trip to
+  `tf2_gc/tf2_inventory.txt`, so equips are lost when the game restarts. Not
+  yet tested against a live client either (implemented after the backpack
+  fix was confirmed working; equipping itself is unverified).
+- No `SOTypeEquipSlot`/`CSOEconEquipSlot` broadcast to a game server (that's
+  what lets *other players* see your equipped cosmetics) -- out of scope
+  along with the rest of in-match cosmetic visibility, see above.
 - Confirmed working against a live TF2 client/GC connection as of
   2026-07-21 (see "Seventh real launch result" above) -- hook attach,
   handshake, and backpack population all verified in-game, not just
-  compiled/linked.
+  compiled/linked. Equipping was added afterward and is not yet verified
+  live.

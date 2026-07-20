@@ -113,6 +113,19 @@ ClientGCTF2::ClientGCTF2(uint64_t steamId)
     {
         Platform::Print("ClientGCTF2: loaded %zu backpack entries from %s items / %s particles\n",
             m_inventory->Entries().size(), schemaPath, inventoryPath);
+
+        // Build the live, mutable item map once here (not per-SO-cache-build)
+        // so equip-state changes (see EquipItem) persist across resends.
+        uint64_t nextItemId = 1;
+        uint32_t accountId = static_cast<uint32_t>(m_steamId & 0xffffffffu);
+        for (const InventoryEntryTF2 &entry : m_inventory->Entries())
+        {
+            for (uint32_t i = 0; i < entry.count; i++)
+            {
+                uint64_t itemId = nextItemId++;
+                BuildEconItem(entry, itemId, accountId, m_liveItems[itemId]);
+            }
+        }
     }
 
     StartThread();
@@ -174,6 +187,10 @@ void ClientGCTF2::HandleMessage(uint32_t type, const void *data, uint32_t size)
         OnRequestInventoryRefresh();
         break;
 
+    case k_EMsgGCAdjustItemEquippedState:
+        OnAdjustItemEquippedState(messageRead);
+        break;
+
     default:
         Platform::Print("ClientGCTF2::HandleMessage: unhandled protobuf message %s\n",
             MessageName(messageRead.TypeUnmasked()));
@@ -200,6 +217,111 @@ void ClientGCTF2::OnRequestInventoryRefresh()
     SendMessageToGame(k_ESOMsg_CacheSubscribed, message);
 }
 
+void ClientGCTF2::AddToMultipleObjects(CMsgSOMultipleObjects &message, uint32_t typeId, const CSOEconItem &item)
+{
+    if (!message.has_owner())
+    {
+        // Same owner/owner_soid double-set as BuildBackpackSOCache -- TF2's
+        // real client only reads "owner" (see docs/tf2_live_hook.md).
+        message.set_owner(m_steamId);
+        message.mutable_owner_soid()->set_type(SoIdTypeSteamId);
+        message.mutable_owner_soid()->set_id(m_steamId);
+    }
+
+    CMsgSOMultipleObjects_SingleObject *single = message.add_objects_modified();
+    single->set_type_id(typeId);
+    single->set_object_data(item.SerializeAsString());
+}
+
+void ClientGCTF2::UnequipItem(uint32_t classId, uint32_t slotId, CMsgSOMultipleObjects &update)
+{
+    for (auto &pair : m_liveItems)
+    {
+        CSOEconItem &item = pair.second;
+        bool modified = false;
+
+        for (auto it = item.mutable_equipped_state()->begin(); it != item.mutable_equipped_state()->end();)
+        {
+            if (it->new_class() == classId && it->new_slot() == slotId)
+            {
+                it = item.mutable_equipped_state()->erase(it);
+                modified = true;
+            }
+            else
+            {
+                ++it;
+            }
+        }
+
+        if (modified)
+        {
+            AddToMultipleObjects(update, SOTypeItemTF2, item);
+        }
+    }
+}
+
+bool ClientGCTF2::EquipItem(uint64_t itemId, uint32_t classId, uint32_t slotId, CMsgSOMultipleObjects &update)
+{
+    if (slotId == SlotUnequipTF2)
+    {
+        // unequip this specific item from every slot it's in
+        auto it = m_liveItems.find(itemId);
+        if (it == m_liveItems.end())
+        {
+            return false;
+        }
+
+        it->second.clear_equipped_state();
+        AddToMultipleObjects(update, SOTypeItemTF2, it->second);
+        return true;
+    }
+
+    // whatever else is currently in this (class, slot) gets unequipped first
+    UnequipItem(classId, slotId, update);
+
+    if (itemId == ItemIdInvalidTF2)
+    {
+        // no item id given -- just unequip, nothing new to equip
+        return true;
+    }
+
+    auto it = m_liveItems.find(itemId);
+    if (it == m_liveItems.end())
+    {
+        Platform::Print("ClientGCTF2: EquipItem: no such item %llu\n", (unsigned long long)itemId);
+        return false;
+    }
+
+    CSOEconItem &item = it->second;
+    CSOEconItemEquipped *equippedState = item.add_equipped_state();
+    equippedState->set_new_class(classId);
+    equippedState->set_new_slot(slotId);
+
+    AddToMultipleObjects(update, SOTypeItemTF2, item);
+    return true;
+}
+
+void ClientGCTF2::OnAdjustItemEquippedState(GCMessageRead &messageRead)
+{
+    CMsgAdjustItemEquippedState message;
+    if (!messageRead.ReadProtobuf(message))
+    {
+        Platform::Print("ClientGCTF2: parsing CMsgAdjustItemEquippedState failed, ignoring\n");
+        return;
+    }
+
+    CMsgSOMultipleObjects update;
+    if (!EquipItem(message.item_id(), message.new_class(), message.new_slot(), update))
+    {
+        return;
+    }
+
+    Platform::Print("ClientGCTF2: equip item=%llu class=%u slot=%u\n",
+        (unsigned long long)message.item_id(), message.new_class(), message.new_slot());
+
+    SendMessageToGame(k_ESOMsg_UpdateMultiple, update);
+}
+
 void ClientGCTF2::BuildBackpackSOCache(CMsgSOCacheSubscribed &message)
 {
     // "owner" is the original GCSDK field (plain steam id); confirmed against
@@ -216,22 +338,12 @@ void ClientGCTF2::BuildBackpackSOCache(CMsgSOCacheSubscribed &message)
     CMsgSOCacheSubscribed_SubscribedType *itemObject = message.add_objects();
     itemObject->set_type_id(SOTypeItemTF2);
 
-    if (!m_schemaLoaded)
+    // Serialize from the live map (reflects any equip-state changes),
+    // not by rebuilding fresh from m_inventory -- that would silently
+    // reset every item to unequipped on every resend.
+    for (const auto &pair : m_liveItems)
     {
-        return;
-    }
-
-    uint64_t nextItemId = 1;
-    uint32_t accountId = static_cast<uint32_t>(m_steamId & 0xffffffffu);
-
-    for (const InventoryEntryTF2 &entry : m_inventory->Entries())
-    {
-        for (uint32_t i = 0; i < entry.count; i++)
-        {
-            CSOEconItem item;
-            BuildEconItem(entry, nextItemId++, accountId, item);
-            itemObject->add_object_data(item.SerializeAsString());
-        }
+        itemObject->add_object_data(pair.second.SerializeAsString());
     }
 }
 
