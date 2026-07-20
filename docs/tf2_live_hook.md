@@ -129,6 +129,38 @@ Not yet confirmed whether this alone fixes the item server / loadout, or
 whether `ClientGCTF2`'s SO cache response has an additional problem — next
 test will tell.
 
+## Second real launch result (2026-07-20, after shipping tf2_gc/config.txt)
+
+Still failed the same way even with `tf2_gc/config.txt` correctly deployed
+(confirmed via `ls`). Got a `tf2_gc/gc_log.txt` this time (the earlier
+logging-path fix worked) and it showed the actual bugs directly:
+
+- `ClientGCTF2: failed to load "../../tf2_gc/tf2_items_game.txt" /
+  "../../tf2_gc/tf2_inventory.txt", backpack will be empty` — wrong path.
+  `config.cpp`'s *fallback* path (`tf2_gc/config.txt`, no `../../` prefix)
+  had already succeeded by this point (proven by the correct appid 440
+  showing up), meaning the real CWD when our code runs is the **game
+  root** — because `tf.exe`/`tf_win64.exe` sit directly in the game root and
+  our own stub never `chdir`s (the real `launcher.dll` does that later,
+  after we've already run). `ClientGCTF2` only had the wrong "../../" path
+  with no fallback. **Fixed**: added the same two-path fallback pattern
+  `config.cpp` already uses, un-prefixed path tried first.
+- `GameProfile: using CS:GO profile` — despite `config.txt` correctly
+  saying `"game" "tf2"` (proven by the correct appid). Root cause, found by
+  just reading `config.cpp`: its constructor only ever checked
+  `if (game == "cs2")` — there was no `"tf2"` branch at all, so `m_game`
+  just stayed at its default value `"csgo"` no matter what the file said.
+  **Fixed**: added the missing `else if (game == "tf2")` branch.
+
+Also visible in the log but not yet investigated: `ClientGCTF2::HandleMessage`
+logged several unhandled messages right after the welcome —
+`k_EMsgGCMOTDRequest`, `k_EMsgGCStoreGetUserData`, and two protobuf messages
+IDs not even in our known-message table (logged as `UNKNOWN MESSAGE`,
+presumably TF2-specific messages from `tf_gcmessages.proto` that were never
+ported here). Unclear yet whether the client tolerates not getting replies
+to these or whether one of them is why the session gets dropped — next test
+(with the path/profile fixes in) will clarify whether these still matter.
+
 ## Known gaps / what to check on first real launch
 
 - **`GameProfile` interface strings are still guesses.** `g_profileTF2`

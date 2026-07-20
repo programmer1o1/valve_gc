@@ -12,12 +12,42 @@
 #include "../tf2_gc/item_schema.h"
 #include "../tf2_gc/inventory.h"
 
-// Matches csgo_gc/inventory.cpp's InventoryFilePath convention: the dylib
-// lives at tf2_gc/<platform>/tf2_gc.<ext>, so "../../tf2_gc/..." resolves to
-// the tf2_gc/ directory next to it. Deploy examples/tf2_items_game.txt and
-// examples/tf2_unusual_inventory.txt there as tf2_items_game.txt/tf2_inventory.txt.
-static constexpr const char *SchemaFilePath = "../../tf2_gc/tf2_items_game.txt";
-static constexpr const char *InventoryFilePath = "../../tf2_gc/tf2_inventory.txt";
+// Same "try both CWD conventions" fallback as config.cpp's ConfigFilePath/
+// ConfigFilePathAlt: confirmed via a real TF2 test that our own InstallGC()
+// runs with CWD = the game's install root (tf.exe/tf_win64.exe live there
+// directly, and our stub never chdirs -- the real launcher.dll does that
+// later, after we've already run), so the un-prefixed path is what actually
+// resolves; the "../../" variant is kept in case that ever isn't true for
+// some other launch path (matches config.cpp's own reasoning).
+static constexpr const char *SchemaFilePaths[] = { "tf2_gc/tf2_items_game.txt", "../../tf2_gc/tf2_items_game.txt" };
+static constexpr const char *InventoryFilePaths[] = { "tf2_gc/tf2_inventory.txt", "../../tf2_gc/tf2_inventory.txt" };
+
+static bool ParseFromFileWithFallback(ItemSchemaTF2 &schema, const char *const (&paths)[2], const char *&usedPath)
+{
+    for (const char *path : paths)
+    {
+        if (schema.ParseFromFile(path))
+        {
+            usedPath = path;
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool ParseFromFileWithFallback(InventoryTF2 &inventory, const ItemSchemaTF2 &schema,
+    const char *const (&paths)[2], const char *&usedPath)
+{
+    for (const char *path : paths)
+    {
+        if (inventory.ParseFromFile(path, schema))
+        {
+            usedPath = path;
+            return true;
+        }
+    }
+    return false;
+}
 
 static void BuildEconItem(const InventoryEntryTF2 &entry, uint64_t itemId, uint32_t accountId, CSOEconItem &item)
 {
@@ -51,18 +81,21 @@ ClientGCTF2::ClientGCTF2(uint64_t steamId)
     , m_schema{ std::make_unique<ItemSchemaTF2>() }
     , m_inventory{ std::make_unique<InventoryTF2>() }
 {
-    m_schemaLoaded = m_schema->ParseFromFile(SchemaFilePath) &&
-        m_inventory->ParseFromFile(InventoryFilePath, *m_schema);
+    const char *schemaPath = "(not found)";
+    const char *inventoryPath = "(not found)";
+
+    m_schemaLoaded = ParseFromFileWithFallback(*m_schema, SchemaFilePaths, schemaPath) &&
+        ParseFromFileWithFallback(*m_inventory, *m_schema, InventoryFilePaths, inventoryPath);
 
     if (!m_schemaLoaded)
     {
         Platform::Print("ClientGCTF2: failed to load \"%s\" / \"%s\", backpack will be empty\n",
-            SchemaFilePath, InventoryFilePath);
+            schemaPath, inventoryPath);
     }
     else
     {
         Platform::Print("ClientGCTF2: loaded %zu backpack entries from %s items / %s particles\n",
-            m_inventory->Entries().size(), SchemaFilePath, InventoryFilePath);
+            m_inventory->Entries().size(), schemaPath, inventoryPath);
     }
 
     StartThread();
