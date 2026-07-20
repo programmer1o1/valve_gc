@@ -41,14 +41,11 @@ endfunction()
 launcher_target(csgo OFF)
 launcher_target(cs2 OFF)
 
-if (NOT WIN32)
-    # TF2 launcher. Unix only for now -- launcher_win.cpp has extra
-    # Wine-specific hardcoded "csgo_gc" paths (see its DllMain hook) that
-    # would need the same GC_MODULE_NAME treatment before this works on
-    # Windows too. See docs/tf2_live_hook.md.
-    launcher_target(tf OFF)
-    target_compile_definitions(tf PRIVATE GC_MODULE_NAME="tf2_gc")
-endif()
+# TF2 launcher (tf.exe / tf_win64.exe / tf_linux64 / tf_osx64 -- TF2 uses
+# game-named launcher executables just like csgo.exe, not a generic hl2.exe).
+launcher_target(tf OFF)
+target_compile_definitions(tf PRIVATE GC_MODULE_NAME="tf2_gc")
+
 if (WIN32 AND NOT IS_32BIT)
     # CS2 on Windows: exe lives in game\bin\win64\ next to tier0.dll and engine2.dll.
     # It loads them directly rather than going through a launcher.dll.

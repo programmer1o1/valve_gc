@@ -50,6 +50,12 @@ typedef int (*LauncherMain_t)(bool bSecure, HINSTANCE hInstance, HINSTANCE hPrev
 typedef void (*InstallGC_t)(bool dedicated);
 typedef void (*PreInstallGC_t)(bool dedicated);
 
+// Which GC dll to load. Defaults to "csgo_gc" (CS:GO/CS2, unchanged); the tf
+// launcher target overrides this to "tf2_gc" (see launcher/CMakeLists.txt).
+#if !defined(GC_MODULE_NAME)
+#define GC_MODULE_NAME "csgo_gc"
+#endif
+
 #if defined(CS2_LAUNCHER)
 // cs2.exe loads tier0.dll first (from game\bin\win64\), then engine2.dll, then calls
 // Source2Main(hInstance, hPrevInstance, lpCmdLine, nShowCmd, exeDir, "csgo") in engine2.
@@ -252,8 +258,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         return 1;
     }
 
-    _snwprintf_s(modulePath, std::size(modulePath), L"%ls\\csgo_gc\\" GC_LIB_DIR "\\"
-                                                    "csgo_gc" GC_LIB_EXTENSION,
+    _snwprintf_s(modulePath, std::size(modulePath), L"%ls\\" GC_MODULE_NAME "\\" GC_LIB_DIR "\\"
+                                                    GC_MODULE_NAME GC_LIB_EXTENSION,
         baseDir);
     InstallGC_t InstallGC = (InstallGC_t)LoadModuleAndFindSymbol(modulePath, "InstallGC");
     if (!InstallGC)

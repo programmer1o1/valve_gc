@@ -37,9 +37,15 @@ relying on it.
   (`tf2_gc_hook/networking_*_tf2.h`, `gc_server_tf2.h`) are all no-op stand-ins
   that exist only so `steam_hook.cpp`'s generic `GCWrapper<...>` types resolve;
   a listen/dedicated server hook will attach but do nothing.
-- No Windows launcher support. `launcher_win.cpp` has extra Wine-specific
-  hardcoded `"csgo_gc"` paths (its DllMain hook) that weren't touched; only
-  `launcher_unix.cpp` was parameterized (`GC_MODULE_NAME`, see below).
+- Windows launcher support was added after checking a real TF2 install:
+  it ships game-named executables (`tf.exe`/`tf_win64.exe`, next to
+  `bin/`, `tf/`, `platform/`), same convention as `csgo.exe`, using the
+  same generic Source-1 launcher path `launcher_win.cpp` already had for
+  CS:GO -- not the CS2-specific `CS2_LAUNCHER` branch (that branch's
+  Wine-specific tier0/steam_api64 preload hack is CS2/Source2-only and
+  doesn't apply here). `bin/x64/launcher.dll` exists in a real TF2 install,
+  confirming the default `GC_GAME_BIN_DIR` (`x64`) needs no CS2-style
+  override.
 
 ## How CS:GO/CS2 stayed untouched
 
@@ -79,13 +85,20 @@ The new `tf` launcher target (`launcher/CMakeLists.txt`) sets it to `"tf2_gc"`.
   appid). For TF2 (appid 440) this will simply always be false, which only
   gates some CS:GO-specific server-browser/stats spoofing paths in
   `steam_hook.cpp` — should be harmless no-ops for TF2, but unverified.
-- **Deployment layout**, mirroring `csgo_gc`'s existing convention:
+- **Deployment layout**, verified against a real TF2 install (game root has
+  `bin/`, `hl2/`, `platform/`, `tf/`, `tf.exe`, `tf_win64.exe`,
+  `steam_appid.txt`; no macOS/arm64 client exists anymore, see below):
   - copy `examples/tf2_items_game.txt` -> `tf2_gc/tf2_items_game.txt`
   - copy `examples/tf2_unusual_inventory.txt` -> `tf2_gc/tf2_inventory.txt`
-  - create `tf2_gc/config.txt` with `appid_override 440` (see `csgo_gc/config.txt`
-    for the format `GCConfig` parses)
-  - replace TF2's real launcher with the built `tf` binary, same way the
-    existing `csgo`/`cs2` binaries replace CS:GO/CS2's
+  - create `tf2_gc/config.txt` with `"game" "tf2"` and `"appid_override" "440"`
+    (see `csgo_gc/config.txt` for the format `GCConfig` parses)
+  - back up `tf.exe`/`tf_win64.exe` (or `tf_linux64` on Linux) and replace
+    with the built `tf`/`tf_win64` binary from the same release zip
+- **No macOS testing is possible.** Valve pulled TF2's macOS binaries in
+  April 2024 and later delisted macOS as a supported platform entirely; the
+  `tf` launcher target still builds on macOS in CI for consistency, but
+  there's no real TF2 client left to hook there. Test on Windows or Linux
+  (Linux got a 64-bit client/server executable in the same April 2024 update).
 - Never tested against a live TF2 client/GC connection. Compiles, links, and
   the CS:GO/CS2 build was confirmed unaffected (see git history for this
   change), but the actual hook attach + handshake round-trip is unverified.

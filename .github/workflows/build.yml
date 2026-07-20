@@ -63,7 +63,7 @@ jobs:
       run: |
         mkdir ${{ github.workspace }}/release
         cmake -G Ninja -B ${{ github.workspace }}/build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -S ${{ github.workspace }} -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache -DOUTDIR=${{ github.workspace }}/release
-        cmake --build ${{ github.workspace }}/build --target csgo srcds csgo_gc tf2_gc
+        cmake --build ${{ github.workspace }}/build --target csgo srcds csgo_gc tf tf2_gc
 
     - if: matrix.os == 'windows-2022'
       name: Setup MSVC (x64)
@@ -75,7 +75,7 @@ jobs:
       name: Build Windows (x64)
       run: |
         cmake -G Ninja -B ${{ github.workspace }}/build_x64 -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -S ${{ github.workspace }} -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache -DOUTDIR=${{ github.workspace }}/release
-        cmake --build ${{ github.workspace }}/build_x64 --target cs2 csgo_gc tf2_gc
+        cmake --build ${{ github.workspace }}/build_x64 --target cs2 csgo_gc tf tf2_gc
 
     - name: Package
       shell: bash
