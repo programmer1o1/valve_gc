@@ -194,6 +194,44 @@ more `UNKNOWN MESSAGE`) are still unhandled and might also matter, but
 `CMsgRequestInventoryRefresh` being sent 3 times right as the connection died
 was a strong enough signal to fix first and retest.
 
+## Fourth real launch result (2026-07-20, refresh handler confirmed, but still no backpack)
+
+`gc_log.txt` confirmed the new handler fires: `ClientGCTF2:
+OnRequestInventoryRefresh, resending 7 backpack items`. But the client
+requested a refresh *again* about 2500 lines later, meaning it still doesn't
+consider the backpack populated even after receiving 7 items twice — this
+pointed away from "missing handler" and toward "the items themselves are
+malformed or unrecognized."
+
+Root cause, found by reading TF2's own real `tf/scripts/items/items_game.txt`
+(the client validates SO cache items against its own loaded schema): **every
+def_index in `tf2_items_game.txt`/`tf2_unusual_inventory.txt` was fabricated
+and didn't correspond to any real TF2 item.** E.g. "Team Captain" was
+invented as `30713`, which doesn't exist in the schema at all; "Ghastly
+Gibus" was invented as `247`, which does exist but is a completely unrelated
+quest-condition entry, not an item (the real Ghastly Gibus is `116`). The
+client silently discards SO cache items with unrecognized def_index values,
+so we were successfully sending "7 backpack items" that the client just
+threw away.
+
+Also discovered while fixing this: the real
+`attribute_controlled_attached_particles` block has a different structure
+than assumed -- nested `other_particles`/`cosmetic_unusual_effects`
+subsections, each entry holding a `system` field with an internal particle
+name (e.g. `superrare_burning1`), not a flat id->display-name map. This
+doesn't affect our own parser (it reads a small hand-authored file in our
+own simpler format, not the real one), but it did mean some of the
+particle *id* numbers were also wrong (`29`/`34` were invented as "Poison
+Clouds"/"Sunbeams" but are really `unusual_storm`/`unusual_bubbles`; `9`,
+`10`, `13`, `14` happened to already be correct).
+
+**Fixed**: rebuilt `examples/tf2_items_game.txt` and
+`examples/tf2_unusual_inventory.txt` using defindexes (`49` Football Helmet,
+`50` Prussian Pickelhaube, `51` Pyro's Beanie, `52` Batter's Helmet, `116`
+Ghastly Gibus) and particle ids (`9`/`10`/`13`/`14`) verified directly
+against a real TF2 install's `items_game.txt`. Attribute `134` ("attach
+particle effect") was already correct.
+
 ## Known gaps / what to check on first real launch
 
 - **`GameProfile` interface strings are still guesses.** `g_profileTF2`

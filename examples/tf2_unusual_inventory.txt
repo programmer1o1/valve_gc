@@ -1,15 +1,14 @@
-// Test/demo inventory for the tf2_gc first milestone: a handful of
-// famous/rare Unusual combinations, using the same "[effect]Item Name"
+// Test/demo inventory for the tf2_gc first milestone, using real verified
+// def_index/particle values (see tf2_items_game.txt). Same "[effect]Item Name"
 // bracket notation as examples/unusual_loot_lists.txt.
 "inventory"
 {
-	"[Burning Flames]Team Captain"			"1"
-	"[Sunbeams]Ghastly Gibus"				"1"
-	"[Bonzo The All-Gnawing]Bill's Hat"		"1"
-	"[Aces High]Max's Severed Head"			"1"
-	"[Poison Clouds]Familiar Fez"			"1"
-	"[Green Energy]Vintage Merryweather"		"1"
+	"[Burning Flames]Ghastly Gibus"			"1"
+	"[Scorching Flames]Football Helmet"		"1"
+	"[Green Energy]Prussian Pickelhaube"		"1"
+	"[Purple Energy]Pyro's Beanie"				"1"
+	"[Burning Flames]Batter's Helmet"			"1"
 
 	// plain (non-Unusual) item for contrast
-	"Team Captain"							"1"
+	"Football Helmet"							"1"
 }

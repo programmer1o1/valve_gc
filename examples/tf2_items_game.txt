@@ -1,61 +1,56 @@
 // Minimal hand-written subset of TF2's items_game.txt for the tf2_gc schema
-// parser's first milestone (see docs/tf2_milestone1.md). Def indexes and
-// particle IDs below reflect real, publicly documented TF2 schema values
-// (Steam Web API ISteamEconomy/GetSchemaItems, TF2 Wiki, backpack.tf) for a
-// handful of famous cosmetics/effects, not a full schema dump.
+// parser. Def indexes and particle IDs below are verified against a real
+// TF2 install's tf/scripts/items/items_game.txt (2026-07-20) -- the first
+// version of this file used fabricated/hallucinated numbers that didn't
+// exist in the real schema, which is why a live test's backpack items were
+// silently discarded by the client (unrecognized def_index). See
+// docs/tf2_live_hook.md.
 "items_game"
 {
 	"items"
 	{
-		"30713"
+		"49"
 		{
-			"name"		"Team Captain"
+			"name"		"Football Helmet"
 			"item_slot"	"head"
 			"can_be_unusual"	"1"
 		}
-		"149"
+		"50"
 		{
-			"name"		"Max's Severed Head"
+			"name"		"Prussian Pickelhaube"
 			"item_slot"	"head"
 			"can_be_unusual"	"1"
 		}
-		"247"
+		"51"
+		{
+			"name"		"Pyro's Beanie"
+			"item_slot"	"head"
+			"can_be_unusual"	"1"
+		}
+		"52"
+		{
+			"name"		"Batter's Helmet"
+			"item_slot"	"head"
+			"can_be_unusual"	"1"
+		}
+		"116"
 		{
 			"name"		"Ghastly Gibus"
 			"item_slot"	"head"
 			"can_be_unusual"	"1"
 		}
-		"378"
-		{
-			"name"		"Bill's Hat"
-			"item_slot"	"head"
-			"can_be_unusual"	"1"
-		}
-		"31085"
-		{
-			"name"		"Vintage Merryweather"
-			"item_slot"	"head"
-			"can_be_unusual"	"1"
-		}
-		"793"
-		{
-			"name"		"Familiar Fez"
-			"item_slot"	"head"
-			"can_be_unusual"	"1"
-		}
 	}
 
+	// real defindex -> real internal particle system name (attribute 134,
+	// "attach particle effect", stores this numeric id as its value). Names
+	// here are our own readable labels for the bracket-notation inventory
+	// file, not literal strings from items_game.txt (the real file only has
+	// internal system names like "superrare_burning1", not display names).
 	"attribute_controlled_attached_particles"
 	{
-		"13"	"Burning Flames"
-		"14"	"Scorching Flames"
-		"17"	"Nemesis Burning Flames"
-		"29"	"Poison Clouds"
-		"30"	"Misty Skull"
-		"34"	"Sunbeams"
-		"56"	"Bonzo The All-Gnawing"
-		"701"	"Aces High"
 		"9"		"Green Energy"
 		"10"	"Purple Energy"
+		"13"	"Burning Flames"
+		"14"	"Scorching Flames"
 	}
 }
