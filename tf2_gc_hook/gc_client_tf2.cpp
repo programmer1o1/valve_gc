@@ -202,6 +202,14 @@ void ClientGCTF2::OnRequestInventoryRefresh()
 
 void ClientGCTF2::BuildBackpackSOCache(CMsgSOCacheSubscribed &message)
 {
+    // "owner" is the original GCSDK field (plain steam id); confirmed against
+    // the real GCSDK client source (nillerusr/source-engine) that TF2's older
+    // client reads this, not "owner_soid" (a newer field CS:GO/CS2 apparently
+    // introduced -- our checked-in gcsdk_gcmessages.proto only had that one,
+    // so "owner" was never set at all here, meaning the real client attached
+    // our items to a bogus owner=0 cache instead of the local player's own).
+    // Set both for safety.
+    message.set_owner(m_steamId);
     message.mutable_owner_soid()->set_type(SoIdTypeSteamId);
     message.mutable_owner_soid()->set_id(m_steamId);
 

@@ -38,6 +38,7 @@ PROTOBUF_CONSTEXPR CMsgSOSingleObject::CMsgSOSingleObject(
   , /*decltype(_impl_._cached_size_)*/{}
   , /*decltype(_impl_.object_data_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
   , /*decltype(_impl_.owner_soid_)*/nullptr
+  , /*decltype(_impl_.owner_)*/uint64_t{0u}
   , /*decltype(_impl_.version_)*/uint64_t{0u}
   , /*decltype(_impl_.type_id_)*/0} {}
 struct CMsgSOSingleObjectDefaultTypeInternal {
@@ -70,6 +71,7 @@ PROTOBUF_CONSTEXPR CMsgSOMultipleObjects::CMsgSOMultipleObjects(
   , /*decltype(_impl_._cached_size_)*/{}
   , /*decltype(_impl_.objects_modified_)*/{}
   , /*decltype(_impl_.owner_soid_)*/nullptr
+  , /*decltype(_impl_.owner_)*/uint64_t{0u}
   , /*decltype(_impl_.version_)*/uint64_t{0u}} {}
 struct CMsgSOMultipleObjectsDefaultTypeInternal {
   PROTOBUF_CONSTEXPR CMsgSOMultipleObjectsDefaultTypeInternal()
@@ -101,6 +103,7 @@ PROTOBUF_CONSTEXPR CMsgSOCacheSubscribed::CMsgSOCacheSubscribed(
   , /*decltype(_impl_._cached_size_)*/{}
   , /*decltype(_impl_.objects_)*/{}
   , /*decltype(_impl_.owner_soid_)*/nullptr
+  , /*decltype(_impl_.owner_)*/uint64_t{0u}
   , /*decltype(_impl_.version_)*/uint64_t{0u}} {}
 struct CMsgSOCacheSubscribedDefaultTypeInternal {
   PROTOBUF_CONSTEXPR CMsgSOCacheSubscribedDefaultTypeInternal()
@@ -115,7 +118,8 @@ PROTOBUF_CONSTEXPR CMsgSOCacheUnsubscribed::CMsgSOCacheUnsubscribed(
     ::_pbi::ConstantInitialized): _impl_{
     /*decltype(_impl_._has_bits_)*/{}
   , /*decltype(_impl_._cached_size_)*/{}
-  , /*decltype(_impl_.owner_soid_)*/nullptr} {}
+  , /*decltype(_impl_.owner_soid_)*/nullptr
+  , /*decltype(_impl_.owner_)*/uint64_t{0u}} {}
 struct CMsgSOCacheUnsubscribedDefaultTypeInternal {
   PROTOBUF_CONSTEXPR CMsgSOCacheUnsubscribedDefaultTypeInternal()
       : _instance(::_pbi::ConstantInitialized{}) {}
@@ -130,6 +134,7 @@ PROTOBUF_CONSTEXPR CMsgSOCacheSubscriptionCheck::CMsgSOCacheSubscriptionCheck(
     /*decltype(_impl_._has_bits_)*/{}
   , /*decltype(_impl_._cached_size_)*/{}
   , /*decltype(_impl_.owner_soid_)*/nullptr
+  , /*decltype(_impl_.owner_)*/uint64_t{0u}
   , /*decltype(_impl_.version_)*/uint64_t{0u}} {}
 struct CMsgSOCacheSubscriptionCheckDefaultTypeInternal {
   PROTOBUF_CONSTEXPR CMsgSOCacheSubscriptionCheckDefaultTypeInternal()
@@ -144,7 +149,8 @@ PROTOBUF_CONSTEXPR CMsgSOCacheSubscriptionRefresh::CMsgSOCacheSubscriptionRefres
     ::_pbi::ConstantInitialized): _impl_{
     /*decltype(_impl_._has_bits_)*/{}
   , /*decltype(_impl_._cached_size_)*/{}
-  , /*decltype(_impl_.owner_soid_)*/nullptr} {}
+  , /*decltype(_impl_.owner_soid_)*/nullptr
+  , /*decltype(_impl_.owner_)*/uint64_t{0u}} {}
 struct CMsgSOCacheSubscriptionRefreshDefaultTypeInternal {
   PROTOBUF_CONSTEXPR CMsgSOCacheSubscriptionRefreshDefaultTypeInternal()
       : _instance(::_pbi::ConstantInitialized{}) {}
@@ -1119,14 +1125,17 @@ std::string CMsgSOIDOwner::GetTypeName() const {
 class CMsgSOSingleObject::_Internal {
  public:
   using HasBits = decltype(std::declval<CMsgSOSingleObject>()._impl_._has_bits_);
+  static void set_has_owner(HasBits* has_bits) {
+    (*has_bits)[0] |= 4u;
+  }
   static void set_has_type_id(HasBits* has_bits) {
-    (*has_bits)[0] |= 8u;
+    (*has_bits)[0] |= 16u;
   }
   static void set_has_object_data(HasBits* has_bits) {
     (*has_bits)[0] |= 1u;
   }
   static void set_has_version(HasBits* has_bits) {
-    (*has_bits)[0] |= 4u;
+    (*has_bits)[0] |= 8u;
   }
   static const ::CMsgSOIDOwner& owner_soid(const CMsgSOSingleObject* msg);
   static void set_has_owner_soid(HasBits* has_bits) {
@@ -1152,6 +1161,7 @@ CMsgSOSingleObject::CMsgSOSingleObject(const CMsgSOSingleObject& from)
     , /*decltype(_impl_._cached_size_)*/{}
     , decltype(_impl_.object_data_){}
     , decltype(_impl_.owner_soid_){nullptr}
+    , decltype(_impl_.owner_){}
     , decltype(_impl_.version_){}
     , decltype(_impl_.type_id_){}};
 
@@ -1167,9 +1177,9 @@ CMsgSOSingleObject::CMsgSOSingleObject(const CMsgSOSingleObject& from)
   if (from._internal_has_owner_soid()) {
     _this->_impl_.owner_soid_ = new ::CMsgSOIDOwner(*from._impl_.owner_soid_);
   }
-  ::memcpy(&_impl_.version_, &from._impl_.version_,
+  ::memcpy(&_impl_.owner_, &from._impl_.owner_,
     static_cast<size_t>(reinterpret_cast<char*>(&_impl_.type_id_) -
-    reinterpret_cast<char*>(&_impl_.version_)) + sizeof(_impl_.type_id_));
+    reinterpret_cast<char*>(&_impl_.owner_)) + sizeof(_impl_.type_id_));
   // @@protoc_insertion_point(copy_constructor:CMsgSOSingleObject)
 }
 
@@ -1182,6 +1192,7 @@ inline void CMsgSOSingleObject::SharedCtor(
     , /*decltype(_impl_._cached_size_)*/{}
     , decltype(_impl_.object_data_){}
     , decltype(_impl_.owner_soid_){nullptr}
+    , decltype(_impl_.owner_){uint64_t{0u}}
     , decltype(_impl_.version_){uint64_t{0u}}
     , decltype(_impl_.type_id_){0}
   };
@@ -1226,10 +1237,10 @@ void CMsgSOSingleObject::Clear() {
       _impl_.owner_soid_->Clear();
     }
   }
-  if (cached_has_bits & 0x0000000cu) {
-    ::memset(&_impl_.version_, 0, static_cast<size_t>(
+  if (cached_has_bits & 0x0000001cu) {
+    ::memset(&_impl_.owner_, 0, static_cast<size_t>(
         reinterpret_cast<char*>(&_impl_.type_id_) -
-        reinterpret_cast<char*>(&_impl_.version_)) + sizeof(_impl_.type_id_));
+        reinterpret_cast<char*>(&_impl_.owner_)) + sizeof(_impl_.type_id_));
   }
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<std::string>();
@@ -1242,6 +1253,15 @@ const char* CMsgSOSingleObject::_InternalParse(const char* ptr, ::_pbi::ParseCon
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
+      // optional fixed64 owner = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 9)) {
+          _Internal::set_has_owner(&has_bits);
+          _impl_.owner_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<uint64_t>(ptr);
+          ptr += sizeof(uint64_t);
+        } else
+          goto handle_unusual;
+        continue;
       // optional int32 type_id = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 16)) {
@@ -1308,8 +1328,14 @@ uint8_t* CMsgSOSingleObject::_InternalSerialize(
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
+  // optional fixed64 owner = 1;
+  if (cached_has_bits & 0x00000004u) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteFixed64ToArray(1, this->_internal_owner(), target);
+  }
+
   // optional int32 type_id = 2;
-  if (cached_has_bits & 0x00000008u) {
+  if (cached_has_bits & 0x00000010u) {
     target = stream->EnsureSpace(target);
     target = ::_pbi::WireFormatLite::WriteInt32ToArray(2, this->_internal_type_id(), target);
   }
@@ -1321,7 +1347,7 @@ uint8_t* CMsgSOSingleObject::_InternalSerialize(
   }
 
   // optional fixed64 version = 4;
-  if (cached_has_bits & 0x00000004u) {
+  if (cached_has_bits & 0x00000008u) {
     target = stream->EnsureSpace(target);
     target = ::_pbi::WireFormatLite::WriteFixed64ToArray(4, this->_internal_version(), target);
   }
@@ -1350,7 +1376,7 @@ size_t CMsgSOSingleObject::ByteSizeLong() const {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (cached_has_bits & 0x0000000fu) {
+  if (cached_has_bits & 0x0000001fu) {
     // optional bytes object_data = 3;
     if (cached_has_bits & 0x00000001u) {
       total_size += 1 +
@@ -1365,13 +1391,18 @@ size_t CMsgSOSingleObject::ByteSizeLong() const {
           *_impl_.owner_soid_);
     }
 
-    // optional fixed64 version = 4;
+    // optional fixed64 owner = 1;
     if (cached_has_bits & 0x00000004u) {
       total_size += 1 + 8;
     }
 
-    // optional int32 type_id = 2;
+    // optional fixed64 version = 4;
     if (cached_has_bits & 0x00000008u) {
+      total_size += 1 + 8;
+    }
+
+    // optional int32 type_id = 2;
+    if (cached_has_bits & 0x00000010u) {
       total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(this->_internal_type_id());
     }
 
@@ -1398,7 +1429,7 @@ void CMsgSOSingleObject::MergeFrom(const CMsgSOSingleObject& from) {
   (void) cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (cached_has_bits & 0x0000000fu) {
+  if (cached_has_bits & 0x0000001fu) {
     if (cached_has_bits & 0x00000001u) {
       _this->_internal_set_object_data(from._internal_object_data());
     }
@@ -1407,9 +1438,12 @@ void CMsgSOSingleObject::MergeFrom(const CMsgSOSingleObject& from) {
           from._internal_owner_soid());
     }
     if (cached_has_bits & 0x00000004u) {
-      _this->_impl_.version_ = from._impl_.version_;
+      _this->_impl_.owner_ = from._impl_.owner_;
     }
     if (cached_has_bits & 0x00000008u) {
+      _this->_impl_.version_ = from._impl_.version_;
+    }
+    if (cached_has_bits & 0x00000010u) {
       _this->_impl_.type_id_ = from._impl_.type_id_;
     }
     _this->_impl_._has_bits_[0] |= cached_has_bits;
@@ -1708,8 +1742,11 @@ std::string CMsgSOMultipleObjects_SingleObject::GetTypeName() const {
 class CMsgSOMultipleObjects::_Internal {
  public:
   using HasBits = decltype(std::declval<CMsgSOMultipleObjects>()._impl_._has_bits_);
-  static void set_has_version(HasBits* has_bits) {
+  static void set_has_owner(HasBits* has_bits) {
     (*has_bits)[0] |= 2u;
+  }
+  static void set_has_version(HasBits* has_bits) {
+    (*has_bits)[0] |= 4u;
   }
   static const ::CMsgSOIDOwner& owner_soid(const CMsgSOMultipleObjects* msg);
   static void set_has_owner_soid(HasBits* has_bits) {
@@ -1735,13 +1772,16 @@ CMsgSOMultipleObjects::CMsgSOMultipleObjects(const CMsgSOMultipleObjects& from)
     , /*decltype(_impl_._cached_size_)*/{}
     , decltype(_impl_.objects_modified_){from._impl_.objects_modified_}
     , decltype(_impl_.owner_soid_){nullptr}
+    , decltype(_impl_.owner_){}
     , decltype(_impl_.version_){}};
 
   _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
   if (from._internal_has_owner_soid()) {
     _this->_impl_.owner_soid_ = new ::CMsgSOIDOwner(*from._impl_.owner_soid_);
   }
-  _this->_impl_.version_ = from._impl_.version_;
+  ::memcpy(&_impl_.owner_, &from._impl_.owner_,
+    static_cast<size_t>(reinterpret_cast<char*>(&_impl_.version_) -
+    reinterpret_cast<char*>(&_impl_.owner_)) + sizeof(_impl_.version_));
   // @@protoc_insertion_point(copy_constructor:CMsgSOMultipleObjects)
 }
 
@@ -1754,6 +1794,7 @@ inline void CMsgSOMultipleObjects::SharedCtor(
     , /*decltype(_impl_._cached_size_)*/{}
     , decltype(_impl_.objects_modified_){arena}
     , decltype(_impl_.owner_soid_){nullptr}
+    , decltype(_impl_.owner_){uint64_t{0u}}
     , decltype(_impl_.version_){uint64_t{0u}}
   };
 }
@@ -1789,7 +1830,11 @@ void CMsgSOMultipleObjects::Clear() {
     GOOGLE_DCHECK(_impl_.owner_soid_ != nullptr);
     _impl_.owner_soid_->Clear();
   }
-  _impl_.version_ = uint64_t{0u};
+  if (cached_has_bits & 0x00000006u) {
+    ::memset(&_impl_.owner_, 0, static_cast<size_t>(
+        reinterpret_cast<char*>(&_impl_.version_) -
+        reinterpret_cast<char*>(&_impl_.owner_)) + sizeof(_impl_.version_));
+  }
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<std::string>();
 }
@@ -1801,6 +1846,15 @@ const char* CMsgSOMultipleObjects::_InternalParse(const char* ptr, ::_pbi::Parse
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
+      // optional fixed64 owner = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 9)) {
+          _Internal::set_has_owner(&has_bits);
+          _impl_.owner_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<uint64_t>(ptr);
+          ptr += sizeof(uint64_t);
+        } else
+          goto handle_unusual;
+        continue;
       // repeated .CMsgSOMultipleObjects.SingleObject objects_modified = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
@@ -1861,6 +1915,13 @@ uint8_t* CMsgSOMultipleObjects::_InternalSerialize(
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
+  cached_has_bits = _impl_._has_bits_[0];
+  // optional fixed64 owner = 1;
+  if (cached_has_bits & 0x00000002u) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteFixed64ToArray(1, this->_internal_owner(), target);
+  }
+
   // repeated .CMsgSOMultipleObjects.SingleObject objects_modified = 2;
   for (unsigned i = 0,
       n = static_cast<unsigned>(this->_internal_objects_modified_size()); i < n; i++) {
@@ -1869,9 +1930,8 @@ uint8_t* CMsgSOMultipleObjects::_InternalSerialize(
         InternalWriteMessage(2, repfield, repfield.GetCachedSize(), target, stream);
   }
 
-  cached_has_bits = _impl_._has_bits_[0];
   // optional fixed64 version = 3;
-  if (cached_has_bits & 0x00000002u) {
+  if (cached_has_bits & 0x00000004u) {
     target = stream->EnsureSpace(target);
     target = ::_pbi::WireFormatLite::WriteFixed64ToArray(3, this->_internal_version(), target);
   }
@@ -1907,7 +1967,7 @@ size_t CMsgSOMultipleObjects::ByteSizeLong() const {
   }
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (cached_has_bits & 0x00000003u) {
+  if (cached_has_bits & 0x00000007u) {
     // optional .CMsgSOIDOwner owner_soid = 6;
     if (cached_has_bits & 0x00000001u) {
       total_size += 1 +
@@ -1915,8 +1975,13 @@ size_t CMsgSOMultipleObjects::ByteSizeLong() const {
           *_impl_.owner_soid_);
     }
 
-    // optional fixed64 version = 3;
+    // optional fixed64 owner = 1;
     if (cached_has_bits & 0x00000002u) {
+      total_size += 1 + 8;
+    }
+
+    // optional fixed64 version = 3;
+    if (cached_has_bits & 0x00000004u) {
       total_size += 1 + 8;
     }
 
@@ -1944,12 +2009,15 @@ void CMsgSOMultipleObjects::MergeFrom(const CMsgSOMultipleObjects& from) {
 
   _this->_impl_.objects_modified_.MergeFrom(from._impl_.objects_modified_);
   cached_has_bits = from._impl_._has_bits_[0];
-  if (cached_has_bits & 0x00000003u) {
+  if (cached_has_bits & 0x00000007u) {
     if (cached_has_bits & 0x00000001u) {
       _this->_internal_mutable_owner_soid()->::CMsgSOIDOwner::MergeFrom(
           from._internal_owner_soid());
     }
     if (cached_has_bits & 0x00000002u) {
+      _this->_impl_.owner_ = from._impl_.owner_;
+    }
+    if (cached_has_bits & 0x00000004u) {
       _this->_impl_.version_ = from._impl_.version_;
     }
     _this->_impl_._has_bits_[0] |= cached_has_bits;
@@ -2218,8 +2286,11 @@ std::string CMsgSOCacheSubscribed_SubscribedType::GetTypeName() const {
 class CMsgSOCacheSubscribed::_Internal {
  public:
   using HasBits = decltype(std::declval<CMsgSOCacheSubscribed>()._impl_._has_bits_);
-  static void set_has_version(HasBits* has_bits) {
+  static void set_has_owner(HasBits* has_bits) {
     (*has_bits)[0] |= 2u;
+  }
+  static void set_has_version(HasBits* has_bits) {
+    (*has_bits)[0] |= 4u;
   }
   static const ::CMsgSOIDOwner& owner_soid(const CMsgSOCacheSubscribed* msg);
   static void set_has_owner_soid(HasBits* has_bits) {
@@ -2245,13 +2316,16 @@ CMsgSOCacheSubscribed::CMsgSOCacheSubscribed(const CMsgSOCacheSubscribed& from)
     , /*decltype(_impl_._cached_size_)*/{}
     , decltype(_impl_.objects_){from._impl_.objects_}
     , decltype(_impl_.owner_soid_){nullptr}
+    , decltype(_impl_.owner_){}
     , decltype(_impl_.version_){}};
 
   _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
   if (from._internal_has_owner_soid()) {
     _this->_impl_.owner_soid_ = new ::CMsgSOIDOwner(*from._impl_.owner_soid_);
   }
-  _this->_impl_.version_ = from._impl_.version_;
+  ::memcpy(&_impl_.owner_, &from._impl_.owner_,
+    static_cast<size_t>(reinterpret_cast<char*>(&_impl_.version_) -
+    reinterpret_cast<char*>(&_impl_.owner_)) + sizeof(_impl_.version_));
   // @@protoc_insertion_point(copy_constructor:CMsgSOCacheSubscribed)
 }
 
@@ -2264,6 +2338,7 @@ inline void CMsgSOCacheSubscribed::SharedCtor(
     , /*decltype(_impl_._cached_size_)*/{}
     , decltype(_impl_.objects_){arena}
     , decltype(_impl_.owner_soid_){nullptr}
+    , decltype(_impl_.owner_){uint64_t{0u}}
     , decltype(_impl_.version_){uint64_t{0u}}
   };
 }
@@ -2299,7 +2374,11 @@ void CMsgSOCacheSubscribed::Clear() {
     GOOGLE_DCHECK(_impl_.owner_soid_ != nullptr);
     _impl_.owner_soid_->Clear();
   }
-  _impl_.version_ = uint64_t{0u};
+  if (cached_has_bits & 0x00000006u) {
+    ::memset(&_impl_.owner_, 0, static_cast<size_t>(
+        reinterpret_cast<char*>(&_impl_.version_) -
+        reinterpret_cast<char*>(&_impl_.owner_)) + sizeof(_impl_.version_));
+  }
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<std::string>();
 }
@@ -2311,6 +2390,15 @@ const char* CMsgSOCacheSubscribed::_InternalParse(const char* ptr, ::_pbi::Parse
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
+      // optional fixed64 owner = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 9)) {
+          _Internal::set_has_owner(&has_bits);
+          _impl_.owner_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<uint64_t>(ptr);
+          ptr += sizeof(uint64_t);
+        } else
+          goto handle_unusual;
+        continue;
       // repeated .CMsgSOCacheSubscribed.SubscribedType objects = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
@@ -2371,6 +2459,13 @@ uint8_t* CMsgSOCacheSubscribed::_InternalSerialize(
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
+  cached_has_bits = _impl_._has_bits_[0];
+  // optional fixed64 owner = 1;
+  if (cached_has_bits & 0x00000002u) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteFixed64ToArray(1, this->_internal_owner(), target);
+  }
+
   // repeated .CMsgSOCacheSubscribed.SubscribedType objects = 2;
   for (unsigned i = 0,
       n = static_cast<unsigned>(this->_internal_objects_size()); i < n; i++) {
@@ -2379,9 +2474,8 @@ uint8_t* CMsgSOCacheSubscribed::_InternalSerialize(
         InternalWriteMessage(2, repfield, repfield.GetCachedSize(), target, stream);
   }
 
-  cached_has_bits = _impl_._has_bits_[0];
   // optional fixed64 version = 3;
-  if (cached_has_bits & 0x00000002u) {
+  if (cached_has_bits & 0x00000004u) {
     target = stream->EnsureSpace(target);
     target = ::_pbi::WireFormatLite::WriteFixed64ToArray(3, this->_internal_version(), target);
   }
@@ -2417,7 +2511,7 @@ size_t CMsgSOCacheSubscribed::ByteSizeLong() const {
   }
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (cached_has_bits & 0x00000003u) {
+  if (cached_has_bits & 0x00000007u) {
     // optional .CMsgSOIDOwner owner_soid = 4;
     if (cached_has_bits & 0x00000001u) {
       total_size += 1 +
@@ -2425,8 +2519,13 @@ size_t CMsgSOCacheSubscribed::ByteSizeLong() const {
           *_impl_.owner_soid_);
     }
 
-    // optional fixed64 version = 3;
+    // optional fixed64 owner = 1;
     if (cached_has_bits & 0x00000002u) {
+      total_size += 1 + 8;
+    }
+
+    // optional fixed64 version = 3;
+    if (cached_has_bits & 0x00000004u) {
       total_size += 1 + 8;
     }
 
@@ -2454,12 +2553,15 @@ void CMsgSOCacheSubscribed::MergeFrom(const CMsgSOCacheSubscribed& from) {
 
   _this->_impl_.objects_.MergeFrom(from._impl_.objects_);
   cached_has_bits = from._impl_._has_bits_[0];
-  if (cached_has_bits & 0x00000003u) {
+  if (cached_has_bits & 0x00000007u) {
     if (cached_has_bits & 0x00000001u) {
       _this->_internal_mutable_owner_soid()->::CMsgSOIDOwner::MergeFrom(
           from._internal_owner_soid());
     }
     if (cached_has_bits & 0x00000002u) {
+      _this->_impl_.owner_ = from._impl_.owner_;
+    }
+    if (cached_has_bits & 0x00000004u) {
       _this->_impl_.version_ = from._impl_.version_;
     }
     _this->_impl_._has_bits_[0] |= cached_has_bits;
@@ -2501,6 +2603,9 @@ std::string CMsgSOCacheSubscribed::GetTypeName() const {
 class CMsgSOCacheUnsubscribed::_Internal {
  public:
   using HasBits = decltype(std::declval<CMsgSOCacheUnsubscribed>()._impl_._has_bits_);
+  static void set_has_owner(HasBits* has_bits) {
+    (*has_bits)[0] |= 2u;
+  }
   static const ::CMsgSOIDOwner& owner_soid(const CMsgSOCacheUnsubscribed* msg);
   static void set_has_owner_soid(HasBits* has_bits) {
     (*has_bits)[0] |= 1u;
@@ -2523,12 +2628,14 @@ CMsgSOCacheUnsubscribed::CMsgSOCacheUnsubscribed(const CMsgSOCacheUnsubscribed& 
   new (&_impl_) Impl_{
       decltype(_impl_._has_bits_){from._impl_._has_bits_}
     , /*decltype(_impl_._cached_size_)*/{}
-    , decltype(_impl_.owner_soid_){nullptr}};
+    , decltype(_impl_.owner_soid_){nullptr}
+    , decltype(_impl_.owner_){}};
 
   _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
   if (from._internal_has_owner_soid()) {
     _this->_impl_.owner_soid_ = new ::CMsgSOIDOwner(*from._impl_.owner_soid_);
   }
+  _this->_impl_.owner_ = from._impl_.owner_;
   // @@protoc_insertion_point(copy_constructor:CMsgSOCacheUnsubscribed)
 }
 
@@ -2540,6 +2647,7 @@ inline void CMsgSOCacheUnsubscribed::SharedCtor(
       decltype(_impl_._has_bits_){}
     , /*decltype(_impl_._cached_size_)*/{}
     , decltype(_impl_.owner_soid_){nullptr}
+    , decltype(_impl_.owner_){uint64_t{0u}}
   };
 }
 
@@ -2572,6 +2680,7 @@ void CMsgSOCacheUnsubscribed::Clear() {
     GOOGLE_DCHECK(_impl_.owner_soid_ != nullptr);
     _impl_.owner_soid_->Clear();
   }
+  _impl_.owner_ = uint64_t{0u};
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<std::string>();
 }
@@ -2583,6 +2692,15 @@ const char* CMsgSOCacheUnsubscribed::_InternalParse(const char* ptr, ::_pbi::Par
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
+      // optional fixed64 owner = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 9)) {
+          _Internal::set_has_owner(&has_bits);
+          _impl_.owner_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<uint64_t>(ptr);
+          ptr += sizeof(uint64_t);
+        } else
+          goto handle_unusual;
+        continue;
       // optional .CMsgSOIDOwner owner_soid = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
@@ -2622,6 +2740,12 @@ uint8_t* CMsgSOCacheUnsubscribed::_InternalSerialize(
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
+  // optional fixed64 owner = 1;
+  if (cached_has_bits & 0x00000002u) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteFixed64ToArray(1, this->_internal_owner(), target);
+  }
+
   // optional .CMsgSOIDOwner owner_soid = 2;
   if (cached_has_bits & 0x00000001u) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
@@ -2645,14 +2769,21 @@ size_t CMsgSOCacheUnsubscribed::ByteSizeLong() const {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // optional .CMsgSOIDOwner owner_soid = 2;
   cached_has_bits = _impl_._has_bits_[0];
-  if (cached_has_bits & 0x00000001u) {
-    total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
-        *_impl_.owner_soid_);
-  }
+  if (cached_has_bits & 0x00000003u) {
+    // optional .CMsgSOIDOwner owner_soid = 2;
+    if (cached_has_bits & 0x00000001u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+          *_impl_.owner_soid_);
+    }
 
+    // optional fixed64 owner = 1;
+    if (cached_has_bits & 0x00000002u) {
+      total_size += 1 + 8;
+    }
+
+  }
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     total_size += _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size();
   }
@@ -2674,9 +2805,16 @@ void CMsgSOCacheUnsubscribed::MergeFrom(const CMsgSOCacheUnsubscribed& from) {
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  if (from._internal_has_owner_soid()) {
-    _this->_internal_mutable_owner_soid()->::CMsgSOIDOwner::MergeFrom(
-        from._internal_owner_soid());
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (cached_has_bits & 0x00000003u) {
+    if (cached_has_bits & 0x00000001u) {
+      _this->_internal_mutable_owner_soid()->::CMsgSOIDOwner::MergeFrom(
+          from._internal_owner_soid());
+    }
+    if (cached_has_bits & 0x00000002u) {
+      _this->_impl_.owner_ = from._impl_.owner_;
+    }
+    _this->_impl_._has_bits_[0] |= cached_has_bits;
   }
   _this->_internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
 }
@@ -2696,7 +2834,12 @@ void CMsgSOCacheUnsubscribed::InternalSwap(CMsgSOCacheUnsubscribed* other) {
   using std::swap;
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
-  swap(_impl_.owner_soid_, other->_impl_.owner_soid_);
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(CMsgSOCacheUnsubscribed, _impl_.owner_)
+      + sizeof(CMsgSOCacheUnsubscribed::_impl_.owner_)
+      - PROTOBUF_FIELD_OFFSET(CMsgSOCacheUnsubscribed, _impl_.owner_soid_)>(
+          reinterpret_cast<char*>(&_impl_.owner_soid_),
+          reinterpret_cast<char*>(&other->_impl_.owner_soid_));
 }
 
 std::string CMsgSOCacheUnsubscribed::GetTypeName() const {
@@ -2709,8 +2852,11 @@ std::string CMsgSOCacheUnsubscribed::GetTypeName() const {
 class CMsgSOCacheSubscriptionCheck::_Internal {
  public:
   using HasBits = decltype(std::declval<CMsgSOCacheSubscriptionCheck>()._impl_._has_bits_);
-  static void set_has_version(HasBits* has_bits) {
+  static void set_has_owner(HasBits* has_bits) {
     (*has_bits)[0] |= 2u;
+  }
+  static void set_has_version(HasBits* has_bits) {
+    (*has_bits)[0] |= 4u;
   }
   static const ::CMsgSOIDOwner& owner_soid(const CMsgSOCacheSubscriptionCheck* msg);
   static void set_has_owner_soid(HasBits* has_bits) {
@@ -2735,13 +2881,16 @@ CMsgSOCacheSubscriptionCheck::CMsgSOCacheSubscriptionCheck(const CMsgSOCacheSubs
       decltype(_impl_._has_bits_){from._impl_._has_bits_}
     , /*decltype(_impl_._cached_size_)*/{}
     , decltype(_impl_.owner_soid_){nullptr}
+    , decltype(_impl_.owner_){}
     , decltype(_impl_.version_){}};
 
   _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
   if (from._internal_has_owner_soid()) {
     _this->_impl_.owner_soid_ = new ::CMsgSOIDOwner(*from._impl_.owner_soid_);
   }
-  _this->_impl_.version_ = from._impl_.version_;
+  ::memcpy(&_impl_.owner_, &from._impl_.owner_,
+    static_cast<size_t>(reinterpret_cast<char*>(&_impl_.version_) -
+    reinterpret_cast<char*>(&_impl_.owner_)) + sizeof(_impl_.version_));
   // @@protoc_insertion_point(copy_constructor:CMsgSOCacheSubscriptionCheck)
 }
 
@@ -2753,6 +2902,7 @@ inline void CMsgSOCacheSubscriptionCheck::SharedCtor(
       decltype(_impl_._has_bits_){}
     , /*decltype(_impl_._cached_size_)*/{}
     , decltype(_impl_.owner_soid_){nullptr}
+    , decltype(_impl_.owner_){uint64_t{0u}}
     , decltype(_impl_.version_){uint64_t{0u}}
   };
 }
@@ -2786,7 +2936,11 @@ void CMsgSOCacheSubscriptionCheck::Clear() {
     GOOGLE_DCHECK(_impl_.owner_soid_ != nullptr);
     _impl_.owner_soid_->Clear();
   }
-  _impl_.version_ = uint64_t{0u};
+  if (cached_has_bits & 0x00000006u) {
+    ::memset(&_impl_.owner_, 0, static_cast<size_t>(
+        reinterpret_cast<char*>(&_impl_.version_) -
+        reinterpret_cast<char*>(&_impl_.owner_)) + sizeof(_impl_.version_));
+  }
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<std::string>();
 }
@@ -2798,6 +2952,15 @@ const char* CMsgSOCacheSubscriptionCheck::_InternalParse(const char* ptr, ::_pbi
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
+      // optional fixed64 owner = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 9)) {
+          _Internal::set_has_owner(&has_bits);
+          _impl_.owner_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<uint64_t>(ptr);
+          ptr += sizeof(uint64_t);
+        } else
+          goto handle_unusual;
+        continue;
       // optional fixed64 version = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 17)) {
@@ -2846,8 +3009,14 @@ uint8_t* CMsgSOCacheSubscriptionCheck::_InternalSerialize(
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  // optional fixed64 version = 2;
+  // optional fixed64 owner = 1;
   if (cached_has_bits & 0x00000002u) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteFixed64ToArray(1, this->_internal_owner(), target);
+  }
+
+  // optional fixed64 version = 2;
+  if (cached_has_bits & 0x00000004u) {
     target = stream->EnsureSpace(target);
     target = ::_pbi::WireFormatLite::WriteFixed64ToArray(2, this->_internal_version(), target);
   }
@@ -2876,7 +3045,7 @@ size_t CMsgSOCacheSubscriptionCheck::ByteSizeLong() const {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (cached_has_bits & 0x00000003u) {
+  if (cached_has_bits & 0x00000007u) {
     // optional .CMsgSOIDOwner owner_soid = 3;
     if (cached_has_bits & 0x00000001u) {
       total_size += 1 +
@@ -2884,8 +3053,13 @@ size_t CMsgSOCacheSubscriptionCheck::ByteSizeLong() const {
           *_impl_.owner_soid_);
     }
 
-    // optional fixed64 version = 2;
+    // optional fixed64 owner = 1;
     if (cached_has_bits & 0x00000002u) {
+      total_size += 1 + 8;
+    }
+
+    // optional fixed64 version = 2;
+    if (cached_has_bits & 0x00000004u) {
       total_size += 1 + 8;
     }
 
@@ -2912,12 +3086,15 @@ void CMsgSOCacheSubscriptionCheck::MergeFrom(const CMsgSOCacheSubscriptionCheck&
   (void) cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (cached_has_bits & 0x00000003u) {
+  if (cached_has_bits & 0x00000007u) {
     if (cached_has_bits & 0x00000001u) {
       _this->_internal_mutable_owner_soid()->::CMsgSOIDOwner::MergeFrom(
           from._internal_owner_soid());
     }
     if (cached_has_bits & 0x00000002u) {
+      _this->_impl_.owner_ = from._impl_.owner_;
+    }
+    if (cached_has_bits & 0x00000004u) {
       _this->_impl_.version_ = from._impl_.version_;
     }
     _this->_impl_._has_bits_[0] |= cached_has_bits;
@@ -2958,6 +3135,9 @@ std::string CMsgSOCacheSubscriptionCheck::GetTypeName() const {
 class CMsgSOCacheSubscriptionRefresh::_Internal {
  public:
   using HasBits = decltype(std::declval<CMsgSOCacheSubscriptionRefresh>()._impl_._has_bits_);
+  static void set_has_owner(HasBits* has_bits) {
+    (*has_bits)[0] |= 2u;
+  }
   static const ::CMsgSOIDOwner& owner_soid(const CMsgSOCacheSubscriptionRefresh* msg);
   static void set_has_owner_soid(HasBits* has_bits) {
     (*has_bits)[0] |= 1u;
@@ -2980,12 +3160,14 @@ CMsgSOCacheSubscriptionRefresh::CMsgSOCacheSubscriptionRefresh(const CMsgSOCache
   new (&_impl_) Impl_{
       decltype(_impl_._has_bits_){from._impl_._has_bits_}
     , /*decltype(_impl_._cached_size_)*/{}
-    , decltype(_impl_.owner_soid_){nullptr}};
+    , decltype(_impl_.owner_soid_){nullptr}
+    , decltype(_impl_.owner_){}};
 
   _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
   if (from._internal_has_owner_soid()) {
     _this->_impl_.owner_soid_ = new ::CMsgSOIDOwner(*from._impl_.owner_soid_);
   }
+  _this->_impl_.owner_ = from._impl_.owner_;
   // @@protoc_insertion_point(copy_constructor:CMsgSOCacheSubscriptionRefresh)
 }
 
@@ -2997,6 +3179,7 @@ inline void CMsgSOCacheSubscriptionRefresh::SharedCtor(
       decltype(_impl_._has_bits_){}
     , /*decltype(_impl_._cached_size_)*/{}
     , decltype(_impl_.owner_soid_){nullptr}
+    , decltype(_impl_.owner_){uint64_t{0u}}
   };
 }
 
@@ -3029,6 +3212,7 @@ void CMsgSOCacheSubscriptionRefresh::Clear() {
     GOOGLE_DCHECK(_impl_.owner_soid_ != nullptr);
     _impl_.owner_soid_->Clear();
   }
+  _impl_.owner_ = uint64_t{0u};
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<std::string>();
 }
@@ -3040,6 +3224,15 @@ const char* CMsgSOCacheSubscriptionRefresh::_InternalParse(const char* ptr, ::_p
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
+      // optional fixed64 owner = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 9)) {
+          _Internal::set_has_owner(&has_bits);
+          _impl_.owner_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<uint64_t>(ptr);
+          ptr += sizeof(uint64_t);
+        } else
+          goto handle_unusual;
+        continue;
       // optional .CMsgSOIDOwner owner_soid = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
@@ -3079,6 +3272,12 @@ uint8_t* CMsgSOCacheSubscriptionRefresh::_InternalSerialize(
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
+  // optional fixed64 owner = 1;
+  if (cached_has_bits & 0x00000002u) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteFixed64ToArray(1, this->_internal_owner(), target);
+  }
+
   // optional .CMsgSOIDOwner owner_soid = 2;
   if (cached_has_bits & 0x00000001u) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
@@ -3102,14 +3301,21 @@ size_t CMsgSOCacheSubscriptionRefresh::ByteSizeLong() const {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // optional .CMsgSOIDOwner owner_soid = 2;
   cached_has_bits = _impl_._has_bits_[0];
-  if (cached_has_bits & 0x00000001u) {
-    total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
-        *_impl_.owner_soid_);
-  }
+  if (cached_has_bits & 0x00000003u) {
+    // optional .CMsgSOIDOwner owner_soid = 2;
+    if (cached_has_bits & 0x00000001u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+          *_impl_.owner_soid_);
+    }
 
+    // optional fixed64 owner = 1;
+    if (cached_has_bits & 0x00000002u) {
+      total_size += 1 + 8;
+    }
+
+  }
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     total_size += _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size();
   }
@@ -3131,9 +3337,16 @@ void CMsgSOCacheSubscriptionRefresh::MergeFrom(const CMsgSOCacheSubscriptionRefr
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  if (from._internal_has_owner_soid()) {
-    _this->_internal_mutable_owner_soid()->::CMsgSOIDOwner::MergeFrom(
-        from._internal_owner_soid());
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (cached_has_bits & 0x00000003u) {
+    if (cached_has_bits & 0x00000001u) {
+      _this->_internal_mutable_owner_soid()->::CMsgSOIDOwner::MergeFrom(
+          from._internal_owner_soid());
+    }
+    if (cached_has_bits & 0x00000002u) {
+      _this->_impl_.owner_ = from._impl_.owner_;
+    }
+    _this->_impl_._has_bits_[0] |= cached_has_bits;
   }
   _this->_internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
 }
@@ -3153,7 +3366,12 @@ void CMsgSOCacheSubscriptionRefresh::InternalSwap(CMsgSOCacheSubscriptionRefresh
   using std::swap;
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
-  swap(_impl_.owner_soid_, other->_impl_.owner_soid_);
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(CMsgSOCacheSubscriptionRefresh, _impl_.owner_)
+      + sizeof(CMsgSOCacheSubscriptionRefresh::_impl_.owner_)
+      - PROTOBUF_FIELD_OFFSET(CMsgSOCacheSubscriptionRefresh, _impl_.owner_soid_)>(
+          reinterpret_cast<char*>(&_impl_.owner_soid_),
+          reinterpret_cast<char*>(&other->_impl_.owner_soid_));
 }
 
 std::string CMsgSOCacheSubscriptionRefresh::GetTypeName() const {

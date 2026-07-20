@@ -321,6 +321,63 @@ in-game while the hats don't, the problem is hat-specific; if neither shows
 up, it's more fundamental (schema not loaded yet, wrong SO cache owner id,
 etc).
 
+## Seventh real launch result (2026-07-21): the Scattergun didn't show up either -- found the real bug
+
+Neither the Scattergun nor the hats showed up; the game just showed the
+default loadout. Since even a guaranteed-valid, always-loaded item failed,
+this ruled out per-item schema lookup problems and pointed at something
+upstream of item validation entirely -- most likely the whole SO cache
+subscription never reaching the local player's inventory at all.
+
+Fetched the actual GCSDK client-side C++ (not decompiled, from
+`nillerusr/source-engine`, a leaked 2017-era Source engine build --
+`gcsdk/gcclient.cpp` and `gcsdk/gcclient_sharedobjectcache.cpp`) and found
+it: `CGCSOCacheSubscribedJob::BYieldingRunGCJob` looks up the target cache
+via `m_pGCClient->FindSOCache( msg.Body().owner(), true )` -- **`owner()`,
+not `owner_soid()`**. Checked the real `gcsdk/gcsdk_gcmessages.proto` in the
+same repo:
+
+```proto
+message CMsgSOCacheSubscribed
+{
+	...
+	optional	fixed64			owner = 1;		// the owner of this cache
+	repeated	SubscribedType	objects = 2;
+	optional	fixed64			version = 3;
+}
+```
+
+Every SO-cache-related message in the real proto has this same pattern: an
+original `owner` (plain `fixed64` steam id) field at a low field number,
+**and nothing else** for `CMsgSOCacheSubscribed` specifically -- `owner_soid`
+doesn't exist there at all in the real schema. Checked our own
+`protobufs/gcsdk_gcmessages.proto`: it only ever defines `owner_soid`
+(`CMsgSOIDOwner`, a newer/different field) on every one of these messages --
+`owner` was missing entirely, on all of them. Since this project's protobufs
+were reverse-engineered purely from CS:GO/CS2 wire traffic, and those never
+seem to send/need the old `owner` field, it was simply never present in this
+file. TF2's much older client only reads `owner`, so every SO cache message
+we ever sent had owner unset (defaulting to 0) -- meaning our items were
+attached to a bogus, unowned cache the local player's `CPlayerInventory`
+never looks at, regardless of what item data was inside. This fully explains
+"fundamental, item-independent failure, always falls back to default
+loadout."
+
+**Fixed**: added the missing `owner` field (matching the real proto's exact
+field numbers) to `CMsgSOSingleObject`, `CMsgSOMultipleObjects`,
+`CMsgSOCacheSubscribed`, `CMsgSOCacheUnsubscribed`,
+`CMsgSOCacheSubscriptionCheck`, and `CMsgSOCacheSubscriptionRefresh` in
+`protobufs/gcsdk_gcmessages.proto`, regenerated the `.pb.cc`/`.pb.h` (had to
+build a matching-version `protoc` from the exact pinned commit in
+`CMakeLists.txt` -- a locally installed newer `protoc` emits an incompatible
+new-generation format), and set `message.set_owner(m_steamId)` in
+`ClientGCTF2::BuildBackpackSOCache` alongside the existing `owner_soid`.
+Purely additive to the shared proto file; CS:GO/CS2 never read or set the
+new field, so this shouldn't affect them.
+
+Not yet retested against a real TF2 client -- this is the first live test
+still pending for this specific fix.
+
 ## Known gaps / what to check on first real launch
 
 - **`GameProfile` interface strings are still guesses.** `g_profileTF2`

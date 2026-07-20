@@ -9,6 +9,13 @@ message CMsgSOIDOwner {
 }
 
 message CMsgSOSingleObject {
+    // "owner" (plain fixed64 steam id) is the original GCSDK field; CS:GO/CS2
+    // apparently only ever send/read "owner_soid" so it was missing from this
+    // file entirely, but TF2's older client only reads "owner" -- confirmed
+    // against the real GCSDK source (nillerusr/source-engine's
+    // gcsdk/gcsdk_gcmessages.proto). Added for TF2; harmless no-op for
+    // CS:GO/CS2, which never set or read it.
+    optional fixed64 owner = 1;
     optional int32 type_id = 2;
     optional bytes object_data = 3;
     optional fixed64 version = 4;
@@ -16,37 +23,42 @@ message CMsgSOSingleObject {
 }
 
 message CMsgSOMultipleObjects {
+    optional fixed64 owner = 1; // see CMsgSOSingleObject.owner
     repeated SingleObject objects_modified = 2;
     message SingleObject {
         optional int32 type_id = 1;
         optional bytes object_data = 2;
     }
-    
+
     optional fixed64 version = 3;
     optional CMsgSOIDOwner owner_soid = 6;
 }
 
 message CMsgSOCacheSubscribed {
+    optional fixed64 owner = 1; // see CMsgSOSingleObject.owner
     repeated SubscribedType objects = 2;
     message SubscribedType {
         optional int32 type_id = 1;
         repeated bytes object_data = 2;
     }
-    
+
     optional fixed64 version = 3;
     optional CMsgSOIDOwner owner_soid = 4;
 }
 
 message CMsgSOCacheUnsubscribed {
+    optional fixed64 owner = 1; // see CMsgSOSingleObject.owner
     optional CMsgSOIDOwner owner_soid = 2;
 }
 
 message CMsgSOCacheSubscriptionCheck {
+    optional fixed64 owner = 1; // see CMsgSOSingleObject.owner
     optional fixed64 version = 2;
     optional CMsgSOIDOwner owner_soid = 3;
 }
 
 message CMsgSOCacheSubscriptionRefresh {
+    optional fixed64 owner = 1; // see CMsgSOSingleObject.owner
     optional CMsgSOIDOwner owner_soid = 2;
 }
 

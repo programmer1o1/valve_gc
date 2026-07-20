@@ -543,6 +543,7 @@ class CMsgSOSingleObject final :
   enum : int {
     kObjectDataFieldNumber = 3,
     kOwnerSoidFieldNumber = 5,
+    kOwnerFieldNumber = 1,
     kVersionFieldNumber = 4,
     kTypeIdFieldNumber = 2,
   };
@@ -582,6 +583,19 @@ class CMsgSOSingleObject final :
       ::CMsgSOIDOwner* owner_soid);
   ::CMsgSOIDOwner* unsafe_arena_release_owner_soid();
 
+  // optional fixed64 owner = 1;
+  bool has_owner() const;
+  private:
+  bool _internal_has_owner() const;
+  public:
+  void clear_owner();
+  uint64_t owner() const;
+  void set_owner(uint64_t value);
+  private:
+  uint64_t _internal_owner() const;
+  void _internal_set_owner(uint64_t value);
+  public:
+
   // optional fixed64 version = 4;
   bool has_version() const;
   private:
@@ -620,6 +634,7 @@ class CMsgSOSingleObject final :
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
     ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr object_data_;
     ::CMsgSOIDOwner* owner_soid_;
+    uint64_t owner_;
     uint64_t version_;
     int32_t type_id_;
   };
@@ -904,6 +919,7 @@ class CMsgSOMultipleObjects final :
   enum : int {
     kObjectsModifiedFieldNumber = 2,
     kOwnerSoidFieldNumber = 6,
+    kOwnerFieldNumber = 1,
     kVersionFieldNumber = 3,
   };
   // repeated .CMsgSOMultipleObjects.SingleObject objects_modified = 2;
@@ -942,6 +958,19 @@ class CMsgSOMultipleObjects final :
       ::CMsgSOIDOwner* owner_soid);
   ::CMsgSOIDOwner* unsafe_arena_release_owner_soid();
 
+  // optional fixed64 owner = 1;
+  bool has_owner() const;
+  private:
+  bool _internal_has_owner() const;
+  public:
+  void clear_owner();
+  uint64_t owner() const;
+  void set_owner(uint64_t value);
+  private:
+  uint64_t _internal_owner() const;
+  void _internal_set_owner(uint64_t value);
+  public:
+
   // optional fixed64 version = 3;
   bool has_version() const;
   private:
@@ -967,6 +996,7 @@ class CMsgSOMultipleObjects final :
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
     ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::CMsgSOMultipleObjects_SingleObject > objects_modified_;
     ::CMsgSOIDOwner* owner_soid_;
+    uint64_t owner_;
     uint64_t version_;
   };
   union { Impl_ _impl_; };
@@ -1256,6 +1286,7 @@ class CMsgSOCacheSubscribed final :
   enum : int {
     kObjectsFieldNumber = 2,
     kOwnerSoidFieldNumber = 4,
+    kOwnerFieldNumber = 1,
     kVersionFieldNumber = 3,
   };
   // repeated .CMsgSOCacheSubscribed.SubscribedType objects = 2;
@@ -1294,6 +1325,19 @@ class CMsgSOCacheSubscribed final :
       ::CMsgSOIDOwner* owner_soid);
   ::CMsgSOIDOwner* unsafe_arena_release_owner_soid();
 
+  // optional fixed64 owner = 1;
+  bool has_owner() const;
+  private:
+  bool _internal_has_owner() const;
+  public:
+  void clear_owner();
+  uint64_t owner() const;
+  void set_owner(uint64_t value);
+  private:
+  uint64_t _internal_owner() const;
+  void _internal_set_owner(uint64_t value);
+  public:
+
   // optional fixed64 version = 3;
   bool has_version() const;
   private:
@@ -1319,6 +1363,7 @@ class CMsgSOCacheSubscribed final :
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
     ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::CMsgSOCacheSubscribed_SubscribedType > objects_;
     ::CMsgSOIDOwner* owner_soid_;
+    uint64_t owner_;
     uint64_t version_;
   };
   union { Impl_ _impl_; };
@@ -1437,6 +1482,7 @@ class CMsgSOCacheUnsubscribed final :
 
   enum : int {
     kOwnerSoidFieldNumber = 2,
+    kOwnerFieldNumber = 1,
   };
   // optional .CMsgSOIDOwner owner_soid = 2;
   bool has_owner_soid() const;
@@ -1456,6 +1502,19 @@ class CMsgSOCacheUnsubscribed final :
       ::CMsgSOIDOwner* owner_soid);
   ::CMsgSOIDOwner* unsafe_arena_release_owner_soid();
 
+  // optional fixed64 owner = 1;
+  bool has_owner() const;
+  private:
+  bool _internal_has_owner() const;
+  public:
+  void clear_owner();
+  uint64_t owner() const;
+  void set_owner(uint64_t value);
+  private:
+  uint64_t _internal_owner() const;
+  void _internal_set_owner(uint64_t value);
+  public:
+
   // @@protoc_insertion_point(class_scope:CMsgSOCacheUnsubscribed)
  private:
   class _Internal;
@@ -1467,6 +1526,7 @@ class CMsgSOCacheUnsubscribed final :
     ::PROTOBUF_NAMESPACE_ID::internal::HasBits<1> _has_bits_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
     ::CMsgSOIDOwner* owner_soid_;
+    uint64_t owner_;
   };
   union { Impl_ _impl_; };
   friend struct ::TableStruct_gcsdk_5fgcmessages_2eproto;
@@ -1584,6 +1644,7 @@ class CMsgSOCacheSubscriptionCheck final :
 
   enum : int {
     kOwnerSoidFieldNumber = 3,
+    kOwnerFieldNumber = 1,
     kVersionFieldNumber = 2,
   };
   // optional .CMsgSOIDOwner owner_soid = 3;
@@ -1603,6 +1664,19 @@ class CMsgSOCacheSubscriptionCheck final :
   void unsafe_arena_set_allocated_owner_soid(
       ::CMsgSOIDOwner* owner_soid);
   ::CMsgSOIDOwner* unsafe_arena_release_owner_soid();
+
+  // optional fixed64 owner = 1;
+  bool has_owner() const;
+  private:
+  bool _internal_has_owner() const;
+  public:
+  void clear_owner();
+  uint64_t owner() const;
+  void set_owner(uint64_t value);
+  private:
+  uint64_t _internal_owner() const;
+  void _internal_set_owner(uint64_t value);
+  public:
 
   // optional fixed64 version = 2;
   bool has_version() const;
@@ -1628,6 +1702,7 @@ class CMsgSOCacheSubscriptionCheck final :
     ::PROTOBUF_NAMESPACE_ID::internal::HasBits<1> _has_bits_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
     ::CMsgSOIDOwner* owner_soid_;
+    uint64_t owner_;
     uint64_t version_;
   };
   union { Impl_ _impl_; };
@@ -1746,6 +1821,7 @@ class CMsgSOCacheSubscriptionRefresh final :
 
   enum : int {
     kOwnerSoidFieldNumber = 2,
+    kOwnerFieldNumber = 1,
   };
   // optional .CMsgSOIDOwner owner_soid = 2;
   bool has_owner_soid() const;
@@ -1765,6 +1841,19 @@ class CMsgSOCacheSubscriptionRefresh final :
       ::CMsgSOIDOwner* owner_soid);
   ::CMsgSOIDOwner* unsafe_arena_release_owner_soid();
 
+  // optional fixed64 owner = 1;
+  bool has_owner() const;
+  private:
+  bool _internal_has_owner() const;
+  public:
+  void clear_owner();
+  uint64_t owner() const;
+  void set_owner(uint64_t value);
+  private:
+  uint64_t _internal_owner() const;
+  void _internal_set_owner(uint64_t value);
+  public:
+
   // @@protoc_insertion_point(class_scope:CMsgSOCacheSubscriptionRefresh)
  private:
   class _Internal;
@@ -1776,6 +1865,7 @@ class CMsgSOCacheSubscriptionRefresh final :
     ::PROTOBUF_NAMESPACE_ID::internal::HasBits<1> _has_bits_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
     ::CMsgSOIDOwner* owner_soid_;
+    uint64_t owner_;
   };
   union { Impl_ _impl_; };
   friend struct ::TableStruct_gcsdk_5fgcmessages_2eproto;
@@ -8610,9 +8700,37 @@ inline void CMsgSOIDOwner::set_id(uint64_t value) {
 
 // CMsgSOSingleObject
 
+// optional fixed64 owner = 1;
+inline bool CMsgSOSingleObject::_internal_has_owner() const {
+  bool value = (_impl_._has_bits_[0] & 0x00000004u) != 0;
+  return value;
+}
+inline bool CMsgSOSingleObject::has_owner() const {
+  return _internal_has_owner();
+}
+inline void CMsgSOSingleObject::clear_owner() {
+  _impl_.owner_ = uint64_t{0u};
+  _impl_._has_bits_[0] &= ~0x00000004u;
+}
+inline uint64_t CMsgSOSingleObject::_internal_owner() const {
+  return _impl_.owner_;
+}
+inline uint64_t CMsgSOSingleObject::owner() const {
+  // @@protoc_insertion_point(field_get:CMsgSOSingleObject.owner)
+  return _internal_owner();
+}
+inline void CMsgSOSingleObject::_internal_set_owner(uint64_t value) {
+  _impl_._has_bits_[0] |= 0x00000004u;
+  _impl_.owner_ = value;
+}
+inline void CMsgSOSingleObject::set_owner(uint64_t value) {
+  _internal_set_owner(value);
+  // @@protoc_insertion_point(field_set:CMsgSOSingleObject.owner)
+}
+
 // optional int32 type_id = 2;
 inline bool CMsgSOSingleObject::_internal_has_type_id() const {
-  bool value = (_impl_._has_bits_[0] & 0x00000008u) != 0;
+  bool value = (_impl_._has_bits_[0] & 0x00000010u) != 0;
   return value;
 }
 inline bool CMsgSOSingleObject::has_type_id() const {
@@ -8620,7 +8738,7 @@ inline bool CMsgSOSingleObject::has_type_id() const {
 }
 inline void CMsgSOSingleObject::clear_type_id() {
   _impl_.type_id_ = 0;
-  _impl_._has_bits_[0] &= ~0x00000008u;
+  _impl_._has_bits_[0] &= ~0x00000010u;
 }
 inline int32_t CMsgSOSingleObject::_internal_type_id() const {
   return _impl_.type_id_;
@@ -8630,7 +8748,7 @@ inline int32_t CMsgSOSingleObject::type_id() const {
   return _internal_type_id();
 }
 inline void CMsgSOSingleObject::_internal_set_type_id(int32_t value) {
-  _impl_._has_bits_[0] |= 0x00000008u;
+  _impl_._has_bits_[0] |= 0x00000010u;
   _impl_.type_id_ = value;
 }
 inline void CMsgSOSingleObject::set_type_id(int32_t value) {
@@ -8708,7 +8826,7 @@ inline void CMsgSOSingleObject::set_allocated_object_data(std::string* object_da
 
 // optional fixed64 version = 4;
 inline bool CMsgSOSingleObject::_internal_has_version() const {
-  bool value = (_impl_._has_bits_[0] & 0x00000004u) != 0;
+  bool value = (_impl_._has_bits_[0] & 0x00000008u) != 0;
   return value;
 }
 inline bool CMsgSOSingleObject::has_version() const {
@@ -8716,7 +8834,7 @@ inline bool CMsgSOSingleObject::has_version() const {
 }
 inline void CMsgSOSingleObject::clear_version() {
   _impl_.version_ = uint64_t{0u};
-  _impl_._has_bits_[0] &= ~0x00000004u;
+  _impl_._has_bits_[0] &= ~0x00000008u;
 }
 inline uint64_t CMsgSOSingleObject::_internal_version() const {
   return _impl_.version_;
@@ -8726,7 +8844,7 @@ inline uint64_t CMsgSOSingleObject::version() const {
   return _internal_version();
 }
 inline void CMsgSOSingleObject::_internal_set_version(uint64_t value) {
-  _impl_._has_bits_[0] |= 0x00000004u;
+  _impl_._has_bits_[0] |= 0x00000008u;
   _impl_.version_ = value;
 }
 inline void CMsgSOSingleObject::set_version(uint64_t value) {
@@ -8928,6 +9046,34 @@ inline void CMsgSOMultipleObjects_SingleObject::set_allocated_object_data(std::s
 
 // CMsgSOMultipleObjects
 
+// optional fixed64 owner = 1;
+inline bool CMsgSOMultipleObjects::_internal_has_owner() const {
+  bool value = (_impl_._has_bits_[0] & 0x00000002u) != 0;
+  return value;
+}
+inline bool CMsgSOMultipleObjects::has_owner() const {
+  return _internal_has_owner();
+}
+inline void CMsgSOMultipleObjects::clear_owner() {
+  _impl_.owner_ = uint64_t{0u};
+  _impl_._has_bits_[0] &= ~0x00000002u;
+}
+inline uint64_t CMsgSOMultipleObjects::_internal_owner() const {
+  return _impl_.owner_;
+}
+inline uint64_t CMsgSOMultipleObjects::owner() const {
+  // @@protoc_insertion_point(field_get:CMsgSOMultipleObjects.owner)
+  return _internal_owner();
+}
+inline void CMsgSOMultipleObjects::_internal_set_owner(uint64_t value) {
+  _impl_._has_bits_[0] |= 0x00000002u;
+  _impl_.owner_ = value;
+}
+inline void CMsgSOMultipleObjects::set_owner(uint64_t value) {
+  _internal_set_owner(value);
+  // @@protoc_insertion_point(field_set:CMsgSOMultipleObjects.owner)
+}
+
 // repeated .CMsgSOMultipleObjects.SingleObject objects_modified = 2;
 inline int CMsgSOMultipleObjects::_internal_objects_modified_size() const {
   return _impl_.objects_modified_.size();
@@ -8970,7 +9116,7 @@ CMsgSOMultipleObjects::objects_modified() const {
 
 // optional fixed64 version = 3;
 inline bool CMsgSOMultipleObjects::_internal_has_version() const {
-  bool value = (_impl_._has_bits_[0] & 0x00000002u) != 0;
+  bool value = (_impl_._has_bits_[0] & 0x00000004u) != 0;
   return value;
 }
 inline bool CMsgSOMultipleObjects::has_version() const {
@@ -8978,7 +9124,7 @@ inline bool CMsgSOMultipleObjects::has_version() const {
 }
 inline void CMsgSOMultipleObjects::clear_version() {
   _impl_.version_ = uint64_t{0u};
-  _impl_._has_bits_[0] &= ~0x00000002u;
+  _impl_._has_bits_[0] &= ~0x00000004u;
 }
 inline uint64_t CMsgSOMultipleObjects::_internal_version() const {
   return _impl_.version_;
@@ -8988,7 +9134,7 @@ inline uint64_t CMsgSOMultipleObjects::version() const {
   return _internal_version();
 }
 inline void CMsgSOMultipleObjects::_internal_set_version(uint64_t value) {
-  _impl_._has_bits_[0] |= 0x00000002u;
+  _impl_._has_bits_[0] |= 0x00000004u;
   _impl_.version_ = value;
 }
 inline void CMsgSOMultipleObjects::set_version(uint64_t value) {
@@ -9197,6 +9343,34 @@ CMsgSOCacheSubscribed_SubscribedType::mutable_object_data() {
 
 // CMsgSOCacheSubscribed
 
+// optional fixed64 owner = 1;
+inline bool CMsgSOCacheSubscribed::_internal_has_owner() const {
+  bool value = (_impl_._has_bits_[0] & 0x00000002u) != 0;
+  return value;
+}
+inline bool CMsgSOCacheSubscribed::has_owner() const {
+  return _internal_has_owner();
+}
+inline void CMsgSOCacheSubscribed::clear_owner() {
+  _impl_.owner_ = uint64_t{0u};
+  _impl_._has_bits_[0] &= ~0x00000002u;
+}
+inline uint64_t CMsgSOCacheSubscribed::_internal_owner() const {
+  return _impl_.owner_;
+}
+inline uint64_t CMsgSOCacheSubscribed::owner() const {
+  // @@protoc_insertion_point(field_get:CMsgSOCacheSubscribed.owner)
+  return _internal_owner();
+}
+inline void CMsgSOCacheSubscribed::_internal_set_owner(uint64_t value) {
+  _impl_._has_bits_[0] |= 0x00000002u;
+  _impl_.owner_ = value;
+}
+inline void CMsgSOCacheSubscribed::set_owner(uint64_t value) {
+  _internal_set_owner(value);
+  // @@protoc_insertion_point(field_set:CMsgSOCacheSubscribed.owner)
+}
+
 // repeated .CMsgSOCacheSubscribed.SubscribedType objects = 2;
 inline int CMsgSOCacheSubscribed::_internal_objects_size() const {
   return _impl_.objects_.size();
@@ -9239,7 +9413,7 @@ CMsgSOCacheSubscribed::objects() const {
 
 // optional fixed64 version = 3;
 inline bool CMsgSOCacheSubscribed::_internal_has_version() const {
-  bool value = (_impl_._has_bits_[0] & 0x00000002u) != 0;
+  bool value = (_impl_._has_bits_[0] & 0x00000004u) != 0;
   return value;
 }
 inline bool CMsgSOCacheSubscribed::has_version() const {
@@ -9247,7 +9421,7 @@ inline bool CMsgSOCacheSubscribed::has_version() const {
 }
 inline void CMsgSOCacheSubscribed::clear_version() {
   _impl_.version_ = uint64_t{0u};
-  _impl_._has_bits_[0] &= ~0x00000002u;
+  _impl_._has_bits_[0] &= ~0x00000004u;
 }
 inline uint64_t CMsgSOCacheSubscribed::_internal_version() const {
   return _impl_.version_;
@@ -9257,7 +9431,7 @@ inline uint64_t CMsgSOCacheSubscribed::version() const {
   return _internal_version();
 }
 inline void CMsgSOCacheSubscribed::_internal_set_version(uint64_t value) {
-  _impl_._has_bits_[0] |= 0x00000002u;
+  _impl_._has_bits_[0] |= 0x00000004u;
   _impl_.version_ = value;
 }
 inline void CMsgSOCacheSubscribed::set_version(uint64_t value) {
@@ -9359,6 +9533,34 @@ inline void CMsgSOCacheSubscribed::set_allocated_owner_soid(::CMsgSOIDOwner* own
 
 // CMsgSOCacheUnsubscribed
 
+// optional fixed64 owner = 1;
+inline bool CMsgSOCacheUnsubscribed::_internal_has_owner() const {
+  bool value = (_impl_._has_bits_[0] & 0x00000002u) != 0;
+  return value;
+}
+inline bool CMsgSOCacheUnsubscribed::has_owner() const {
+  return _internal_has_owner();
+}
+inline void CMsgSOCacheUnsubscribed::clear_owner() {
+  _impl_.owner_ = uint64_t{0u};
+  _impl_._has_bits_[0] &= ~0x00000002u;
+}
+inline uint64_t CMsgSOCacheUnsubscribed::_internal_owner() const {
+  return _impl_.owner_;
+}
+inline uint64_t CMsgSOCacheUnsubscribed::owner() const {
+  // @@protoc_insertion_point(field_get:CMsgSOCacheUnsubscribed.owner)
+  return _internal_owner();
+}
+inline void CMsgSOCacheUnsubscribed::_internal_set_owner(uint64_t value) {
+  _impl_._has_bits_[0] |= 0x00000002u;
+  _impl_.owner_ = value;
+}
+inline void CMsgSOCacheUnsubscribed::set_owner(uint64_t value) {
+  _internal_set_owner(value);
+  // @@protoc_insertion_point(field_set:CMsgSOCacheUnsubscribed.owner)
+}
+
 // optional .CMsgSOIDOwner owner_soid = 2;
 inline bool CMsgSOCacheUnsubscribed::_internal_has_owner_soid() const {
   bool value = (_impl_._has_bits_[0] & 0x00000001u) != 0;
@@ -9453,9 +9655,37 @@ inline void CMsgSOCacheUnsubscribed::set_allocated_owner_soid(::CMsgSOIDOwner* o
 
 // CMsgSOCacheSubscriptionCheck
 
+// optional fixed64 owner = 1;
+inline bool CMsgSOCacheSubscriptionCheck::_internal_has_owner() const {
+  bool value = (_impl_._has_bits_[0] & 0x00000002u) != 0;
+  return value;
+}
+inline bool CMsgSOCacheSubscriptionCheck::has_owner() const {
+  return _internal_has_owner();
+}
+inline void CMsgSOCacheSubscriptionCheck::clear_owner() {
+  _impl_.owner_ = uint64_t{0u};
+  _impl_._has_bits_[0] &= ~0x00000002u;
+}
+inline uint64_t CMsgSOCacheSubscriptionCheck::_internal_owner() const {
+  return _impl_.owner_;
+}
+inline uint64_t CMsgSOCacheSubscriptionCheck::owner() const {
+  // @@protoc_insertion_point(field_get:CMsgSOCacheSubscriptionCheck.owner)
+  return _internal_owner();
+}
+inline void CMsgSOCacheSubscriptionCheck::_internal_set_owner(uint64_t value) {
+  _impl_._has_bits_[0] |= 0x00000002u;
+  _impl_.owner_ = value;
+}
+inline void CMsgSOCacheSubscriptionCheck::set_owner(uint64_t value) {
+  _internal_set_owner(value);
+  // @@protoc_insertion_point(field_set:CMsgSOCacheSubscriptionCheck.owner)
+}
+
 // optional fixed64 version = 2;
 inline bool CMsgSOCacheSubscriptionCheck::_internal_has_version() const {
-  bool value = (_impl_._has_bits_[0] & 0x00000002u) != 0;
+  bool value = (_impl_._has_bits_[0] & 0x00000004u) != 0;
   return value;
 }
 inline bool CMsgSOCacheSubscriptionCheck::has_version() const {
@@ -9463,7 +9693,7 @@ inline bool CMsgSOCacheSubscriptionCheck::has_version() const {
 }
 inline void CMsgSOCacheSubscriptionCheck::clear_version() {
   _impl_.version_ = uint64_t{0u};
-  _impl_._has_bits_[0] &= ~0x00000002u;
+  _impl_._has_bits_[0] &= ~0x00000004u;
 }
 inline uint64_t CMsgSOCacheSubscriptionCheck::_internal_version() const {
   return _impl_.version_;
@@ -9473,7 +9703,7 @@ inline uint64_t CMsgSOCacheSubscriptionCheck::version() const {
   return _internal_version();
 }
 inline void CMsgSOCacheSubscriptionCheck::_internal_set_version(uint64_t value) {
-  _impl_._has_bits_[0] |= 0x00000002u;
+  _impl_._has_bits_[0] |= 0x00000004u;
   _impl_.version_ = value;
 }
 inline void CMsgSOCacheSubscriptionCheck::set_version(uint64_t value) {
@@ -9574,6 +9804,34 @@ inline void CMsgSOCacheSubscriptionCheck::set_allocated_owner_soid(::CMsgSOIDOwn
 // -------------------------------------------------------------------
 
 // CMsgSOCacheSubscriptionRefresh
+
+// optional fixed64 owner = 1;
+inline bool CMsgSOCacheSubscriptionRefresh::_internal_has_owner() const {
+  bool value = (_impl_._has_bits_[0] & 0x00000002u) != 0;
+  return value;
+}
+inline bool CMsgSOCacheSubscriptionRefresh::has_owner() const {
+  return _internal_has_owner();
+}
+inline void CMsgSOCacheSubscriptionRefresh::clear_owner() {
+  _impl_.owner_ = uint64_t{0u};
+  _impl_._has_bits_[0] &= ~0x00000002u;
+}
+inline uint64_t CMsgSOCacheSubscriptionRefresh::_internal_owner() const {
+  return _impl_.owner_;
+}
+inline uint64_t CMsgSOCacheSubscriptionRefresh::owner() const {
+  // @@protoc_insertion_point(field_get:CMsgSOCacheSubscriptionRefresh.owner)
+  return _internal_owner();
+}
+inline void CMsgSOCacheSubscriptionRefresh::_internal_set_owner(uint64_t value) {
+  _impl_._has_bits_[0] |= 0x00000002u;
+  _impl_.owner_ = value;
+}
+inline void CMsgSOCacheSubscriptionRefresh::set_owner(uint64_t value) {
+  _internal_set_owner(value);
+  // @@protoc_insertion_point(field_set:CMsgSOCacheSubscriptionRefresh.owner)
+}
 
 // optional .CMsgSOIDOwner owner_soid = 2;
 inline bool CMsgSOCacheSubscriptionRefresh::_internal_has_owner_soid() const {
