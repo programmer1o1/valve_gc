@@ -67,6 +67,13 @@ static void WriteFile(const char *path, const std::string &buffer)
     }
 }
 
+// Game content directory containing steam.inf. Defaults to "csgo" (CS:GO/CS2,
+// unchanged); the tf2_gc target overrides this to "tf" (see
+// tf2_gc_hook/CMakeLists.txt), matching TF2's game/tf/ layout.
+#if !defined(GC_GAME_DIR)
+#define GC_GAME_DIR "csgo"
+#endif
+
 void Init()
 {
     // defaults to 730 if not specified
@@ -74,14 +81,14 @@ void Init()
 
     Platform::Print("Using app id %u\n", appIdOverride);
 
-    std::string steamInf = LoadFile("csgo/steam.inf");
+    std::string steamInf = LoadFile(GC_GAME_DIR "/steam.inf");
     SteamInfResult steamInfResult = ReplaceSteamInfAppId(steamInf, appIdOverride);
 
     switch (steamInfResult)
     {
     case SteamInfResult::Ok:
         // could make a backup, but don't...
-        WriteFile("csgo/steam.inf", steamInf);
+        WriteFile(GC_GAME_DIR "/steam.inf", steamInf);
         Platform::Print("Replaced steam.inf app id with %u\n", appIdOverride);
         break;
 

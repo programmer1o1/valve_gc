@@ -46,6 +46,29 @@ const GameProfile g_profileCS2 = {
     .networkGameClientLocalPlayer = 0xF8,       // offset within INetworkGameClient
 };
 
+// TF2 is Source 1, same vintage as CS:GO's engine build, so this profile
+// reuses CS:GO's interface version strings as a best-effort default.
+// UNVERIFIED against a real tf/bin engine.dylib/.so/.dll — if hooking fails
+// on launch, dump the actual "GAMEEVENTSMANAGER*"/"VEngineClient*" strings
+// out of TF2's engine binary and fix these. See docs/tf2_live_hook.md.
+// requiredAppIdVersion/pricesheetVersion/activeTournamentEventId and the
+// localPlayerController*/networkGameClient* offsets are CS:GO/CS2-only
+// fields (matchmaking hello, CS2 memory offsets); unused by ClientGCTF2.
+const GameProfile g_profileTF2 = {
+    .mode                    = GameMode::TF2,
+    .appId                   = 440,
+    .engineModule            = "engine",
+    .gameEventManagerVersion = "GAMEEVENTSMANAGER002",
+    .engineClientVersion     = "VEngineClient014",
+    .requiredAppIdVersion    = 0,
+    .requiredAppIdVersion2   = 0,
+    .pricesheetVersion       = 0,
+    .activeTournamentEventId = 0,
+    .localPlayerControllerOffset = 0,
+    .networkGameClientOffset     = 0,
+    .networkGameClientLocalPlayer = 0,
+};
+
 const GameProfile &GetGameProfile()
 {
     static const GameProfile *profile = nullptr;
@@ -53,8 +76,21 @@ const GameProfile &GetGameProfile()
     {
         // lazy init so GetConfig() is ready
         std::string_view game = GetConfig().Game();
-        profile = (game == "cs2") ? &g_profileCS2 : &g_profileCSGO;
-        Platform::Print("GameProfile: using %s profile\n", game == "cs2" ? "CS2" : "CS:GO");
+        if (game == "cs2")
+        {
+            profile = &g_profileCS2;
+        }
+        else if (game == "tf2")
+        {
+            profile = &g_profileTF2;
+        }
+        else
+        {
+            profile = &g_profileCSGO;
+        }
+
+        Platform::Print("GameProfile: using %s profile\n",
+            game == "cs2" ? "CS2" : (game == "tf2" ? "TF2" : "CS:GO"));
     }
     return *profile;
 }

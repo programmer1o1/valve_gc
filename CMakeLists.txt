@@ -50,6 +50,8 @@ endif()
 add_subdirectory(csgo_gc)
 add_subdirectory(launcher)
 add_subdirectory(steamworks)
+add_subdirectory(tf2_gc)
+add_subdirectory(tf2_gc_hook)
 
 include(FetchContent)
 set(FETCHCONTENT_QUIET FALSE)

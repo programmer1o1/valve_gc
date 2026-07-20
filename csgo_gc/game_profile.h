@@ -6,6 +6,7 @@ enum class GameMode
 {
     CSGO,
     CS2,
+    TF2,
 };
 
 struct GameProfile
@@ -45,3 +46,4 @@ const GameProfile &GetGameProfile();
 // Known profiles
 extern const GameProfile g_profileCSGO;
 extern const GameProfile g_profileCS2;
+extern const GameProfile g_profileTF2;

@@ -5,8 +5,11 @@
 
 // Try from CS2's CWD (game\bin\win64\) first, then from the launcher's CWD (game\).
 // GetConfig() can be called from either context on first use.
-static const char *ConfigFilePath = "../../csgo_gc/config.txt";
-static const char *ConfigFilePathAlt = "csgo_gc/config.txt";
+#if !defined(GC_MODULE_NAME)
+#define GC_MODULE_NAME "csgo_gc"
+#endif
+static const char *ConfigFilePath = "../../" GC_MODULE_NAME "/config.txt";
+static const char *ConfigFilePathAlt = GC_MODULE_NAME "/config.txt";
 
 const GCConfig &GetConfig()
 {

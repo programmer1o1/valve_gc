@@ -4,8 +4,7 @@
 #include "steam_hook.h"
 #include "appid.h"
 #include "game_profile.h"
-#include "gc_client.h"
-#include "gc_server.h"
+#include "gc_active.h"
 #include "platform.h"
 #include <funchook.h>
 
@@ -29,8 +28,7 @@ struct SteamNetworkingIdentity;
 #include <steam/isteamgamecoordinator.h>
 
 // these should come after steam includes
-#include "networking_client.h"
-#include "networking_server.h"
+#include "networking_active.h"
 
 // UserStatsReceived_t fails with the new csgo appid, which causes gc callbacks to not run
 // to work around this, spoof user stats requests when running under this appid specifically
@@ -145,8 +143,8 @@ public:
 
 // these are in file scope for networking, callbacks and gc server
 // client connect/disconnect notifications
-static GCWrapper<ClientGC, NetworkingClient> *s_clientGC;
-static GCWrapper<ServerGC, NetworkingServer> *s_serverGC;
+static GCWrapper<ActiveClientGC, ActiveNetworkingClient> *s_clientGC;
+static GCWrapper<ActiveServerGC, ActiveNetworkingServer> *s_serverGC;
 
 struct PlayerInfo
 {
@@ -541,13 +539,13 @@ public:
         if (m_server)
         {
             assert(!s_serverGC);
-            s_serverGC = new GCWrapper<ServerGC, NetworkingServer>{ SteamGameServerNetworkingMessages() };
+            s_serverGC = new GCWrapper<ActiveServerGC, ActiveNetworkingServer>{ SteamGameServerNetworkingMessages() };
             Platform::Print("csgo_gc: ServerGC created\n");
         }
         else
         {
             assert(!s_clientGC);
-            s_clientGC = new GCWrapper<ClientGC, NetworkingClient>{ SteamNetworkingMessages(), steamId };
+            s_clientGC = new GCWrapper<ActiveClientGC, ActiveNetworkingClient>{ SteamNetworkingMessages(), steamId };
             Platform::Print("csgo_gc: ClientGC created for steamId=%llu\n", (unsigned long long)steamId);
         }
     }

@@ -16,6 +16,12 @@
 #define SYMBOL_NAME "LauncherMain"
 #endif
 
+// Which GC dylib to load. Defaults to "csgo_gc" (CS:GO/CS2, unchanged);
+// the tf launcher target overrides this to "tf2_gc" (see launcher/CMakeLists.txt).
+#if !defined(GC_MODULE_NAME)
+#define GC_MODULE_NAME "csgo_gc"
+#endif
+
 typedef int (*LauncherMain_t)(int argc, char **argv);
 typedef void (*InstallGC_t)(bool dedicated);
 
@@ -102,8 +108,8 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    modulePath = "csgo_gc/" GC_LIB_DIR "/"
-                 "csgo_gc" GC_LIB_EXTENSION;
+    modulePath = GC_MODULE_NAME "/" GC_LIB_DIR "/"
+                 GC_MODULE_NAME GC_LIB_EXTENSION;
     InstallGC_t InstallGC = (InstallGC_t)LoadModuleAndFindSymbol(modulePath, "InstallGC");
     if (!InstallGC)
     {
