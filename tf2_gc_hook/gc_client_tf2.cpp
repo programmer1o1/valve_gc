@@ -49,6 +49,15 @@ static bool ParseFromFileWithFallback(InventoryTF2 &inventory, const ItemSchemaT
     return false;
 }
 
+// Not in the committed generated protobuf headers' enum (base_gcmessages.proto
+// declares the CMsgRequestInventoryRefresh message but not its wire id), so
+// define it here -- same pattern csgo_gc/gc_client.cpp uses for
+// k_EMsgGCOpenCrate. Confirmed via IDA: TF2's client.dll sends this
+// (GCSDK::CProtoBufMsg<CMsgRequestInventoryRefresh>, wire value 1050) from its
+// backpack UI's "no items, refresh" action when it doesn't see a populated
+// inventory -- exactly the message our first live test never answered.
+static constexpr uint32_t k_EMsgGCRequestInventoryRefresh = 1050;
+
 static void BuildEconItem(const InventoryEntryTF2 &entry, uint64_t itemId, uint32_t accountId, CSOEconItem &item)
 {
     item.set_id(itemId);
@@ -153,6 +162,10 @@ void ClientGCTF2::HandleMessage(uint32_t type, const void *data, uint32_t size)
         OnClientHello(messageRead);
         break;
 
+    case k_EMsgGCRequestInventoryRefresh:
+        OnRequestInventoryRefresh();
+        break;
+
     default:
         Platform::Print("ClientGCTF2::HandleMessage: unhandled protobuf message %s\n",
             MessageName(messageRead.TypeUnmasked()));
@@ -166,6 +179,17 @@ void ClientGCTF2::HandleSOCacheRequest()
     // server can validate/mirror your backpack. NetworkingClientTF2 can't
     // relay it anywhere yet (see its header) so there's nothing useful to do.
     Platform::Print("ClientGCTF2: SOCacheRequest ignored (game-server relay not implemented)\n");
+}
+
+void ClientGCTF2::OnRequestInventoryRefresh()
+{
+    CMsgSOCacheSubscribed message;
+    BuildBackpackSOCache(message);
+
+    int itemCount = message.objects_size() ? message.objects(0).object_data_size() : 0;
+    Platform::Print("ClientGCTF2: OnRequestInventoryRefresh, resending %d backpack items\n", itemCount);
+
+    SendMessageToGame(k_ESOMsg_CacheSubscribed, message);
 }
 
 void ClientGCTF2::BuildBackpackSOCache(CMsgSOCacheSubscribed &message)

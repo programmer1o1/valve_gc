@@ -161,6 +161,39 @@ ported here). Unclear yet whether the client tolerates not getting replies
 to these or whether one of them is why the session gets dropped — next test
 (with the path/profile fixes in) will clarify whether these still matter.
 
+## Third real launch result (2026-07-20, path/profile fixes confirmed, item server still dead)
+
+Both fixes above confirmed working in `gc_log.txt`: `GameProfile: using TF2
+profile` and `ClientGCTF2: loaded 7 backpack entries from tf2_gc/tf2_items_game.txt
+items / tf2_gc/tf2_inventory.txt particles`, followed by `ClientGCTF2: sending
+welcome with 7 backpack items`. Progress — but the item server was still dead
+in-game, and the log went completely silent (no more traffic at all, not even
+the per-tick `round_mvp` listener retry spam that had been constant up to that
+point) right after one of the unhandled messages repeated exactly 3 times:
+`ClientGCTF2::HandleMessage: unhandled protobuf message UNKNOWN MESSAGE`,
+`type=2147484698` (unmasked: `1050`).
+
+Identified via IDA (`client.dll`): `sub_1806332A0` sends
+`GCSDK::CProtoBufMsg<CMsgRequestInventoryRefresh>` with wire value **1050**,
+triggered by a UI string `"#NoSteamNoItems_Refresh"` — i.e. this is literally
+the backpack UI's own "no items, refresh" action explicitly asking the GC to
+resend the inventory. We never answered it, so after retrying 3 times the
+client evidently gave up (matching the "item server" going dead and the
+otherwise-constant per-tick log traffic stopping entirely).
+
+**Fixed**: added `k_EMsgGCRequestInventoryRefresh = 1050` (not in the
+committed generated protobuf headers' enum, same situation as
+`k_EMsgGCOpenCrate` in `csgo_gc/gc_client.cpp` — defined locally) and a
+handler that just resends the same backpack `CMsgSOCacheSubscribed` via
+`k_ESOMsg_CacheSubscribed`, the same message type `ReloadInventory`/etc.
+already use in `csgo_gc/gc_client.cpp` for resending an updated SO cache.
+
+Not yet confirmed whether this was the *only* missing piece — the other
+unhandled messages (`k_EMsgGCMOTDRequest`, `k_EMsgGCStoreGetUserData`, one
+more `UNKNOWN MESSAGE`) are still unhandled and might also matter, but
+`CMsgRequestInventoryRefresh` being sent 3 times right as the connection died
+was a strong enough signal to fix first and retest.
+
 ## Known gaps / what to check on first real launch
 
 - **`GameProfile` interface strings are still guesses.** `g_profileTF2`

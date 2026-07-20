@@ -43,6 +43,7 @@ private:
     void HandleMessage(uint32_t type, const void *data, uint32_t size);
     void HandleSOCacheRequest();
     void OnClientHello(GCMessageRead &messageRead);
+    void OnRequestInventoryRefresh();
     void BuildBackpackSOCache(CMsgSOCacheSubscribed &message);
 
     void SendMessageToGame(uint32_t type, const google::protobuf::MessageLite &message);
