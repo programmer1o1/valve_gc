@@ -524,3 +524,81 @@ TF2 client/listen server** -- next step is another live retest to confirm
 `ServerGCTF2` actually receives `k_EMsgGCServerHello`, the SO cache reaches
 the game server, and equipped items finally show up in-game and persist on
 the loadout screen.
+
+### Eighth real launch result: server GC connects, still no visible equip
+
+Confirmed live: the "lost connection to the item server" popup is gone,
+`ClientGCTF2: HandleSOCacheRequest, sending 2 equipped items to game server`
+fires, and `ServerGCTF2::HandleNetMessage` receives it (115 bytes, no
+validation errors) -- the server-side GC plumbing above works exactly as
+designed. But equipping a *new* item still didn't change anything: the log
+showed `csgo_gc: GCProxy::SendMessage type=2147484707 ...` (2147484707 -
+0x80000000 = 1059 = `k_EMsgGCAdjustItemEquippedState`, confirming the real
+client sent the equip request), our `ClientGCTF2: equip item=1 class=4
+slot=7` handler ran, and `GCProxy::RetrieveMessage type=2147483674 size=181`
+(2147483674 - 0x80000000 = 26 = `k_ESOMsg_UpdateMultiple`) shows the game
+successfully retrieved our reply -- zero errors anywhere in the chain, yet
+nothing visibly changed in the loadout screen or in-game model.
+
+Root cause, found by fetching the leaked `ValveSoftware/source-sdk-2013`'s
+`src/game/shared/econ/econ_item.cpp` (`CEconItem::DeserializeFromProtoBufItem`):
+
+```cpp
+// update equipped state
+if ( msgItem.has_contains_equipped_state_v2() && msgItem.contains_equipped_state_v2() )
+{
+    // unequip from everything...
+    Unequip();
+    // ...and re-equip to whatever our current state is
+    for ( int i = 0; i < msgItem.equipped_state_size(); i++ )
+        Equip( msgItem.equipped_state(i).new_class(), msgItem.equipped_state(i).new_slot() );
+}
+```
+
+The real client **completely ignores `equipped_state` unless
+`contains_equipped_state_v2` (a bool) is also true** -- and
+`CEconItem::SerializeToProtoBufItem` shows the real GC unconditionally sets
+`msgItem.set_contains_equipped_state_v2( true )` on every single item it
+sends. We never set this field at all, so every `equipped_state` entry we
+sent (both the initial equipped-only push and every `UpdateMultiple` equip
+change) was silently discarded client-side -- explaining exactly what was
+observed: perfect wire-level delivery, zero visible effect.
+
+Confirmed the real field number/type via a second, TF2-specific leaked
+proto: `Detanup01/gbe_fork`'s `dll/gc_tf2/base_gcmessages.proto` declares
+`CSOEconItem` with `optional bool contains_equipped_state = 17;` and
+`optional bool contains_equipped_state_v2 = 19;` -- but our checked-in
+`protobufs/base_gcmessages.proto` is shared with CS:GO/CS2, whose real wire
+format uses field 19 for something unrelated (`rarity`). Rather than fork
+and regenerate the whole shared protobuf (needs the exact pinned protoc
+version, see above), `gc_client_tf2.cpp`'s new `SerializeEconItemForWire()`
+helper appends the field by hand after `item.SerializeAsString()`: field 19,
+wire type 0 (varint), tag `(19 << 3) | 0 = 152` varint-encoded as `0x98 0x01`,
+then value byte `0x01` for true. Protobuf tolerates trailing appended bytes
+on an otherwise-valid message, and we never populate `rarity` for TF2 items,
+so there's no collision. Applied everywhere a `CSOEconItem` gets serialized
+onto the wire: `BuildBackpackSOCache` (both the full backpack and the
+equipped-only push) and `AddToMultipleObjects` (equip/unequip updates).
+`ServerGCTF2`'s `RemoveUnequippedItemsTF2` passes kept items' raw bytes
+through unchanged (no re-serialization), so the appended field survives the
+whole client -> server relay path intact.
+
+Also noticed but **not yet fixed** (separate, lower-priority finding from
+the same decompiled source): the real GC serializes `CSOEconItemAttribute`
+values via `set_value_bytes()` (raw byte stream from
+`ConvertEconAttributeValueToByteStream`), not the generic `value` uint32
+field we use for the particle-effect attribute in `BuildEconItem`. Both
+fields exist in our checked-in proto (unlike `contains_equipped_state_v2`),
+so this would be a normal field change, not another manual-append case --
+worth revisiting if Unusual particle effects don't render correctly even
+after the equip fix above.
+
+Also cleaned up unconditional `Platform::Print("Failed to register
+round_mvp listener\n")`/`"...server-side round_mvp listener\n"` spam every
+single tick in `steam_hook.cpp`'s `UpdateGameEventListeners` -- round_mvp
+(music kit MVP) is a CS:GO-only concept TF2's event manager will never
+have, so the registration attempt (and both listener class/variable
+declarations) are now compiled out entirely under `TF2_GC_BUILD` instead of
+retrying forever.
+
+Not yet verified live.

@@ -348,6 +348,7 @@ public:
     }
 };
 
+#if !defined(TF2_GC_BUILD)
 class ServerRoundMVPEventListener final : public IGameEventListener2
 {
 public:
@@ -381,13 +382,16 @@ public:
         return EventDebugIdInit;
     }
 };
+#endif
 
 static ClientGameEventListener s_clientGameEventListener;
+#if !defined(TF2_GC_BUILD)
 static ServerRoundMVPEventListener s_serverRoundMVPEventListener;
+static bool s_serverRoundMVPListenerRegistered = false;
+#endif
 static bool s_clientRoundMVPListenerRegistered = false;
 static bool s_clientRoundStartListenerRegistered = false;
 static bool s_clientRoundEndListenerRegistered = false;
-static bool s_serverRoundMVPListenerRegistered = false;
 
 static void InitializeClientGameInterfaces()
 {
@@ -424,6 +428,12 @@ static void UpdateGameEventListeners()
     // leave stale listeners behind in engine.dll's event manager.
     if (s_clientGC)
     {
+#if !defined(TF2_GC_BUILD)
+        // round_mvp/music kit MVP is a CS:GO-only concept (see
+        // ClientGCTF2::LocalPlayerMusicKitMVPsForRoundMVPEvent, always 0)
+        // that TF2's event manager will never have, so skip the doomed
+        // registration attempt entirely instead of retrying (and logging
+        // the failure) every single tick forever.
         if (!s_clientRoundMVPListenerRegistered)
         {
             if (s_gameEventManager->AddListener(&s_clientGameEventListener, "round_mvp", false))
@@ -436,6 +446,7 @@ static void UpdateGameEventListeners()
                 Platform::Print("Failed to register round_mvp listener\n");
             }
         }
+#endif
 
         if (!s_clientRoundStartListenerRegistered)
         {
@@ -480,6 +491,7 @@ static void UpdateGameEventListeners()
         }
     }
 
+#if !defined(TF2_GC_BUILD)
     if (s_serverGC && !s_serverRoundMVPListenerRegistered)
     {
         if (s_gameEventManager->AddListener(&s_serverRoundMVPEventListener, "round_mvp", true))
@@ -498,6 +510,7 @@ static void UpdateGameEventListeners()
         s_serverRoundMVPListenerRegistered = false;
         Platform::Print("Unregistered server-side round_mvp listener\n");
     }
+#endif
 }
 
 template<size_t N>

@@ -58,6 +58,36 @@ static bool ParseFromFileWithFallback(InventoryTF2 &inventory, const ItemSchemaT
 // inventory -- exactly the message our first live test never answered.
 static constexpr uint32_t k_EMsgGCRequestInventoryRefresh = 1050;
 
+// TF2's real client (source-sdk-2013's CEconItem::DeserializeFromProtoBufItem,
+// confirmed via the leaked SDK) completely ignores an item's equipped_state
+// array on receipt unless "contains_equipped_state_v2" (a bool at protobuf
+// field 19) is also true -- and CEconItem::SerializeToProtoBufItem shows the
+// real GC unconditionally sets this true on every item it sends. This is
+// almost certainly why equip changes reached the client (confirmed via
+// gc_log: k_EMsgGCAdjustItemEquippedState received, our k_ESOMsg_UpdateMultiple
+// reply retrieved with no errors) but never visibly applied: the client
+// silently discarded the equipped_state we sent because we never set this
+// flag at all.
+//
+// Our checked-in base_gcmessages.proto is shared with CS:GO/CS2, whose real
+// wire format uses field 19 for something unrelated ("rarity"), so we can't
+// add contains_equipped_state_v2 as a normal generated field without either
+// breaking CS:GO or forking+regenerating the whole shared protobuf (which
+// needs the exact pinned protoc version, see docs/tf2_live_hook.md). Instead,
+// append the field by hand: protobuf tolerates extra trailing bytes appended
+// to an otherwise-valid serialized message, and we never populate `rarity`
+// for TF2 items, so there's no collision. Field 19, wire type 0 (varint):
+// tag = (19 << 3) | 0 = 152, varint-encoded as 0x98 0x01, followed by the
+// value byte 0x01 for "true".
+static std::string SerializeEconItemForWire(const CSOEconItem &item)
+{
+    std::string data = item.SerializeAsString();
+    data.push_back(static_cast<char>(0x98));
+    data.push_back(static_cast<char>(0x01));
+    data.push_back(static_cast<char>(0x01));
+    return data;
+}
+
 static void BuildEconItem(const InventoryEntryTF2 &entry, uint64_t itemId, uint32_t accountId, CSOEconItem &item)
 {
     item.set_id(itemId);
@@ -246,7 +276,7 @@ void ClientGCTF2::AddToMultipleObjects(CMsgSOMultipleObjects &message, uint32_t 
 
     CMsgSOMultipleObjects_SingleObject *single = message.add_objects_modified();
     single->set_type_id(typeId);
-    single->set_object_data(item.SerializeAsString());
+    single->set_object_data(SerializeEconItemForWire(item));
 }
 
 void ClientGCTF2::UnequipItem(uint32_t classId, uint32_t slotId, CMsgSOMultipleObjects &update)
@@ -376,7 +406,7 @@ void ClientGCTF2::BuildBackpackSOCache(CMsgSOCacheSubscribed &message, bool equi
             continue;
         }
 
-        itemObject->add_object_data(pair.second.SerializeAsString());
+        itemObject->add_object_data(SerializeEconItemForWire(pair.second));
     }
 }
 
