@@ -126,15 +126,18 @@ static void BuildEconItem(const InventoryEntryTF2 &entry, uint64_t itemId, uint3
 
     if (entry.isAustralium)
     {
-        // Deliberately NOT setting item.style here: the gold "styles" table
-        // (visuals.styles["1"]) only exists on each weapon's separate
-        // "Upgradeable ..." War Paint-base sibling in the real schema (e.g.
-        // defindex 205 for the Rocket Launcher), not on the base weapon
-        // itself (defindex 18) that Australium items actually use -- a real
-        // client has no styles table to index into on this defindex, so
-        // style=1 here is a no-op at best. The real gold reskin is driven
-        // entirely by the client's native weapon-skin code checking this
-        // attribute, independent of the item-style/War-Paint system.
+        // Confirmed via the actual leaked Valve client source
+        // (ValveSoftware/source-sdk-2013, econ_item_view.cpp's
+        // CEconItemView::GetSkin): it only honors this style field at all if
+        // GetStaticData()->GetNumStyles() is nonzero for the item's OWN
+        // defindex -- otherwise it falls through to a plain per-team/default
+        // skin and the style value is silently ignored. Only the
+        // "Upgradeable ..." /paintkit-base defindexes declare a styles table
+        // in the real schema, so entry.defIndex here must already be one of
+        // those (tf2_items_game.txt's AUSTRALIUM_ITEMS), not the plain
+        // weapon's defindex -- see inventory.cpp's HasAustraliumPrefix.
+        item.set_style(StyleAustraliumGoldTF2);
+
         CSOEconItemAttribute *attr = item.add_attribute();
         attr->set_def_index(AttributeIsAustraliumItemTF2);
 

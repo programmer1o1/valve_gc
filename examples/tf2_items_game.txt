@@ -9,17 +9,26 @@
 //
 // Includes every non-cosmetic-skin weapon each class can use (stock +
 // unlocks; War Paint/"Upgradeable" base items and per-skin War Paint variants
-// excluded -- those aren't distinct obtainable weapons, just reskin bases),
-// a couple of Unusual-eligible hats, the Golden Frying Pan (defindex 1071,
-// a distinct all-class item, not an attribute-driven reskin), and Australium
-// weapons. Real Australium items are NOT separate defindexes: they're the
-// same base weapon defindex carrying attribute 2027 ("is_australium_item")
-// plus visual style index 1 (the item's built-in gold skin) -- confirmed via
-// the real schema's "make_australium" random_attribute_template and each
-// base weapon's "Upgradeable" sibling's style-1 image_inventory path ending
-// in "_gold". tf2_gc_hook parses this as an "Australium <ItemName>" prefix
-// in the inventory file (see gc_client_tf2.cpp / inventory.cpp), same idea
-// as the "[effect]ItemName" bracket notation for Unusuals.
+// excluded from the general weapon list -- those aren't distinct obtainable
+// weapons, just reskin bases), a couple of Unusual-eligible hats, the Golden
+// Frying Pan (defindex 1071, a genuinely distinct all-class item, not an
+// attribute-driven reskin -- it's part of the general weapon list below,
+// picked up automatically since it's used by all 9 classes), and Australium
+// weapons.
+//
+// Australium items are a special case of the "Upgradeable ..." exclusion
+// above: real Australium weapons use that SAME "Upgradeable"/paintkit-base
+// defindex (quality Strange + attribute 2027 "is_australium_item" + style 1
+// instead of a paintkit attribute), not the plain weapon's defindex --
+// confirmed via the actual leaked Valve client source
+// (ValveSoftware/source-sdk-2013, econ_item_view.cpp's
+// CEconItemView::GetSkin): it only honors the style field at all if the
+// item's OWN defindex declares a styles table in the schema, which only the
+// "Upgradeable" defindexes do. So the 11 AUSTRALIUM_ITEMS entries below
+// reuse those defindexes under a distinct "Australium <Weapon>" name (see
+// gc_client_tf2.cpp / inventory.cpp for how the "Australium " prefix in the
+// inventory file maps to these, alongside the "[effect]ItemName" bracket
+// notation for Unusuals).
 "items_game"
 {
 	"items"
@@ -484,6 +493,72 @@
 		{
 			"name"		"Vita-Saw"
 			"item_slot"	"melee"
+		}
+
+		"194"
+		{
+			"name"		"Australium Knife"
+			"item_slot"	"melee"
+		}
+
+		"197"
+		{
+			"name"		"Australium Wrench"
+			"item_slot"	"melee"
+		}
+
+		"200"
+		{
+			"name"		"Australium Scattergun"
+			"item_slot"	"primary"
+		}
+
+		"201"
+		{
+			"name"		"Australium Sniper Rifle"
+			"item_slot"	"primary"
+		}
+
+		"202"
+		{
+			"name"		"Australium Minigun"
+			"item_slot"	"primary"
+		}
+
+		"203"
+		{
+			"name"		"Australium SMG"
+			"item_slot"	"secondary"
+		}
+
+		"205"
+		{
+			"name"		"Australium Rocket Launcher"
+			"item_slot"	"primary"
+		}
+
+		"206"
+		{
+			"name"		"Australium Grenade Launcher"
+			"item_slot"	"primary"
+		}
+
+		"207"
+		{
+			"name"		"Australium Stickybomb Launcher"
+			"item_slot"	"secondary"
+		}
+
+		"208"
+		{
+			"name"		"Australium Flame Thrower"
+			"item_slot"	"primary"
+		}
+
+		"211"
+		{
+			"name"		"Australium Medi Gun"
+			"item_slot"	"secondary"
 		}
 
 		"214"
@@ -1732,12 +1807,6 @@
 		"1013"
 		{
 			"name"		"Ham Shank"
-			"item_slot"	"melee"
-		}
-
-		"1071"
-		{
-			"name"		"Golden Frying Pan"
 			"item_slot"	"melee"
 		}
 

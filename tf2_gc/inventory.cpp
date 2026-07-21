@@ -51,21 +51,19 @@ static bool SplitBracketNotation(std::string_view entryName, std::string_view &p
     return true;
 }
 
-// Parses "Australium Item Name" -> Item Name, same idea as the bracket
-// notation above but for the real "is_australium_item" attribute (2027)
-// instead of a particle effect. Real Australium weapons use this exact
-// display-name convention (base weapon name prefixed with "Australium "),
-// so it doubles as a schema lookup key with no separate bracket needed.
-static bool SplitAustraliumPrefix(std::string_view &itemName)
+// Detects the "Australium Item Name" naming convention. Unlike the bracket
+// notation above, this does NOT strip the prefix before schema lookup: real
+// Australium weapons use a distinct defindex from their plain counterpart
+// (the "Upgradeable ..." /paintkit-base defindex -- confirmed via the real
+// client's CEconItemView::GetSkin, which only honors CSOEconItem.style if
+// the item's own defindex declares a styles table in the schema, and only
+// that defindex does), so tf2_items_game.txt has a separate schema entry
+// literally named "Australium Item Name" pointing at it. The full string
+// (prefix included) is the actual lookup key.
+static bool HasAustraliumPrefix(std::string_view itemName)
 {
     constexpr std::string_view prefix = "Australium ";
-    if (itemName.substr(0, prefix.size()) != prefix)
-    {
-        return false;
-    }
-
-    itemName.remove_prefix(prefix.size());
-    return true;
+    return itemName.substr(0, prefix.size()) == prefix;
 }
 
 bool InventoryTF2::ParseFromFile(const char *path, const ItemSchemaTF2 &schema)
@@ -87,7 +85,7 @@ bool InventoryTF2::ParseFromFile(const char *path, const ItemSchemaTF2 &schema)
         std::string_view particleName;
         std::string_view itemName;
         bool isUnusual = SplitBracketNotation(entryKey.Name(), particleName, itemName);
-        bool isAustralium = !isUnusual && SplitAustraliumPrefix(itemName);
+        bool isAustralium = !isUnusual && HasAustraliumPrefix(itemName);
 
         const ItemSchemaTF2::ItemInfo *itemInfo = schema.ItemInfoByName(itemName);
         if (!itemInfo)

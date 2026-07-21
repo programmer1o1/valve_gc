@@ -14,12 +14,26 @@ constexpr uint32_t AttributeParticleEffectTF2 = 134;
 
 // CSOEconItemAttribute def_index for "is australium item" (attribute_class
 // "is_australium_item", stored_as_integer per the real schema -- confirmed
-// in a real items_game.txt's attributes block). Real Australium weapons are
-// just the base weapon's own defindex carrying this one attribute at Strange
-// quality -- not a separate item, and NOT driven by CSOEconItem.style (see
-// gc_client_tf2.cpp's BuildEconItem for why the style system doesn't apply
-// to these defindexes).
+// in a real items_game.txt's attributes block). Also confirmed against the
+// actual leaked Valve client source (ValveSoftware/source-sdk-2013,
+// econ_item_interface.cpp / econ_item_description.cpp): this attribute
+// alone drives the "Australium " display-name prefix (via localization
+// token "ItemNameAustralium") and marketplace listability, but NOT the
+// gold skin itself -- see StyleAustraliumGoldTF2 below for that.
 constexpr uint32_t AttributeIsAustraliumItemTF2 = 2027;
+
+// CSOEconItem.style value that selects the gold skin variant. Confirmed via
+// the real client source's CEconItemView::GetSkin (econ_item_view.cpp):
+// it only calls GetStyleSkin(style, team) -- i.e. only honors this field at
+// all -- if GetStaticData()->GetNumStyles() is nonzero for the item's OWN
+// defindex; otherwise it silently falls through to a plain per-team/default
+// skin. Only the "Upgradeable ..." /paintkit-base defindexes declare a
+// styles table in the real schema (the plain weapon defindex has none), so
+// this only works when entry.defIndex is already one of those -- see
+// tf2_items_game.txt's AUSTRALIUM_ITEMS and inventory.cpp's
+// HasAustraliumPrefix, which look up a distinct "Australium <Weapon>"
+// schema entry pointing at the Upgradeable defindex, not the plain one.
+constexpr uint32_t StyleAustraliumGoldTF2 = 1;
 
 // Shared object type (type_id field in CMsgSOCacheSubscribed_SubscribedType).
 // Economy items are SO type 1 across every Valve GC game (CS:GO, TF2, Dota2).
