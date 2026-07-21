@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <string>
 #include <unordered_map>
 #include <vector>
 
@@ -66,12 +67,25 @@ private:
     void UnequipItem(uint32_t classId, uint32_t slotId, CMsgSOMultipleObjects &update);
     void AddToMultipleObjects(CMsgSOMultipleObjects &message, uint32_t typeId, const CSOEconItem &item);
 
+    // Equip state is otherwise only ever kept in m_liveItems (in memory), so
+    // it's lost every time the process restarts and has to be re-equipped
+    // from scratch in the loadout menu. Persists as (classId, slotId) ->
+    // defIndex triples -- defIndex rather than the ephemeral per-session
+    // itemId, since itemId is just a sequential counter reassigned from
+    // tf2_inventory.txt's order on every construction and isn't stable
+    // across restarts, while defIndex identifies the same logical item
+    // every time (as long as tf2_inventory.txt doesn't list the same
+    // defIndex twice, which it currently never does).
+    void SaveEquippedState() const;
+    void LoadEquippedState();
+
     void SendMessageToGame(bool sendToGameServer, uint32_t type, const google::protobuf::MessageLite &message);
 
     const uint64_t m_steamId;
     std::unique_ptr<ItemSchemaTF2> m_schema;
     std::unique_ptr<InventoryTF2> m_inventory;
     bool m_schemaLoaded{ false };
+    std::string m_equippedStatePath;
 
     // Live, mutable mirror of the backpack (itemId -> CSOEconItem), built
     // once at startup from m_inventory's entries. BuildBackpackSOCache reads

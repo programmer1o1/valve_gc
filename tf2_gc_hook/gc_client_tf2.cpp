@@ -1,5 +1,6 @@
 #include "stdafx.h" // csgo_gc's PCH: pulls in the generated protobufs plus
                     // the <mutex>/<vector>/<thread>/etc gc_shared.h relies on
+#include <cstdio>
 #include <cstring>
 #include <ctime>
 
@@ -182,6 +183,20 @@ ClientGCTF2::ClientGCTF2(uint64_t steamId)
                 BuildEconItem(entry, itemId, accountId, m_liveItems[itemId]);
             }
         }
+
+        // Derive the equipped-state save file from whichever of the two CWD-
+        // convention paths inventoryPath resolved to (see ParseFromFileWithFallback),
+        // so it always lands next to tf2_inventory.txt regardless of which one
+        // actually worked.
+        m_equippedStatePath = inventoryPath;
+        constexpr std::string_view inventoryFileName = "tf2_inventory.txt";
+        size_t pos = m_equippedStatePath.rfind(inventoryFileName);
+        if (pos != std::string::npos)
+        {
+            m_equippedStatePath.replace(pos, inventoryFileName.size(), "tf2_equipped_state.txt");
+        }
+
+        LoadEquippedState();
     }
 
     StartThread();
@@ -416,6 +431,7 @@ void ClientGCTF2::OnDeleteItem(GCMessageRead &messageRead)
     destroyed.set_object_data(destroyedItem.SerializeAsString());
 
     m_liveItems.erase(it);
+    SaveEquippedState();
 
     Platform::Print("ClientGCTF2: deleted item=%llu\n", (unsigned long long)itemId);
 
@@ -444,10 +460,88 @@ void ClientGCTF2::OnAdjustItemEquippedState(GCMessageRead &messageRead)
     Platform::Print("ClientGCTF2: equip item=%llu class=%u slot=%u\n",
         (unsigned long long)message.item_id(), message.new_class(), message.new_slot());
 
+    // Persist immediately (not just on clean shutdown) so an equip survives
+    // even if the game/process is killed rather than closed normally.
+    SaveEquippedState();
+
     // Also tell the game server (true), same as csgo_gc/gc_client.cpp's
     // AdjustItemEquippedState -- otherwise the equip change never reaches
     // ServerGCTF2, so it never gets applied on the loadout screen/in-game.
     SendMessageToGame(/*sendToGameServer=*/true, k_ESOMsg_UpdateMultiple, update);
+}
+
+void ClientGCTF2::SaveEquippedState() const
+{
+    if (m_equippedStatePath.empty())
+    {
+        return;
+    }
+
+    FILE *f = fopen(m_equippedStatePath.c_str(), "w");
+    if (!f)
+    {
+        Platform::Print("ClientGCTF2: failed to open \"%s\" for writing equipped state\n",
+            m_equippedStatePath.c_str());
+        return;
+    }
+
+    int count = 0;
+    for (const auto &pair : m_liveItems)
+    {
+        const CSOEconItem &item = pair.second;
+        for (const CSOEconItemEquipped &equipped : item.equipped_state())
+        {
+            fprintf(f, "%u %u %u\n", equipped.new_class(), equipped.new_slot(), item.def_index());
+            count++;
+        }
+    }
+
+    fclose(f);
+    Platform::Print("ClientGCTF2: saved %d equipped item(s) to \"%s\"\n", count, m_equippedStatePath.c_str());
+}
+
+void ClientGCTF2::LoadEquippedState()
+{
+    if (m_equippedStatePath.empty())
+    {
+        return;
+    }
+
+    FILE *f = fopen(m_equippedStatePath.c_str(), "r");
+    if (!f)
+    {
+        // Nothing saved yet -- normal on first run.
+        return;
+    }
+
+    // defIndex -> itemId, so we can find the right live item to equip below
+    // without an O(n) scan of m_liveItems per saved entry.
+    std::unordered_map<uint32_t, uint64_t> itemIdByDefIndex;
+    for (const auto &pair : m_liveItems)
+    {
+        itemIdByDefIndex.emplace(pair.second.def_index(), pair.first);
+    }
+
+    int restored = 0;
+    uint32_t classId, slotId, defIndex;
+    while (fscanf(f, "%u %u %u", &classId, &slotId, &defIndex) == 3)
+    {
+        auto it = itemIdByDefIndex.find(defIndex);
+        if (it == itemIdByDefIndex.end())
+        {
+            Platform::Print("ClientGCTF2: saved equip for unknown defIndex %u, skipping\n", defIndex);
+            continue;
+        }
+
+        CSOEconItem &item = m_liveItems[it->second];
+        CSOEconItemEquipped *equippedState = item.add_equipped_state();
+        equippedState->set_new_class(classId);
+        equippedState->set_new_slot(slotId);
+        restored++;
+    }
+
+    fclose(f);
+    Platform::Print("ClientGCTF2: restored %d equipped item(s) from \"%s\"\n", restored, m_equippedStatePath.c_str());
 }
 
 void ClientGCTF2::BuildBackpackSOCache(CMsgSOCacheSubscribed &message, bool equippedOnly)
