@@ -98,6 +98,7 @@ bool InventoryTF2::ParseFromFile(const char *path, const ItemSchemaTF2 &schema)
         InventoryEntryTF2 entry;
         entry.defIndex = itemInfo->defIndex;
         entry.itemName = itemInfo->name;
+        entry.itemLevel = itemInfo->minLevel;
         entry.count = FromString<uint32_t>(entryKey.String());
         if (entry.count == 0)
         {
@@ -124,6 +125,13 @@ bool InventoryTF2::ParseFromFile(const char *path, const ItemSchemaTF2 &schema)
             entry.hasParticle = true;
             entry.particleId = particleInfo->id;
             entry.particleName = particleInfo->name;
+
+            // Unusual quality forces level 10 regardless of the base item's
+            // own min/max ilevel bounds (confirmed: Ghastly Gibus's real
+            // schema entry happens to also require exactly 10, but plain
+            // hats like Football Helmet have no such requirement at all --
+            // it's Unusual-ness itself driving this, not the base item).
+            entry.itemLevel = 10;
         }
         else if (isAustralium)
         {

@@ -38,6 +38,16 @@ public:
         std::string name;
         std::string itemSlot;
         bool canBeUnusual{};
+
+        // CSOEconItem.level must fall within [minLevel, maxLevel] or the real
+        // client silently rejects the item as invalid (see gc_client_tf2.cpp's
+        // BuildEconItem) -- for many weapons these are equal (an exact
+        // required level, e.g. Force-a-Nature needs exactly 10), not 1, so
+        // this can't be hardcoded generically like the old code assumed.
+        // Defaults to 1/1 (matches items_game.txt's own convention of no
+        // min_ilevel/max_ilevel meaning "level 1 only") when unset.
+        uint32_t minLevel{ 1 };
+        uint32_t maxLevel{ 1 };
     };
 
     struct ParticleInfo

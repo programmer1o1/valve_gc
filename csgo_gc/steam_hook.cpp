@@ -3099,6 +3099,46 @@ void SteamHookPreInstall(bool dedicated)
 #endif // _WIN32
 }
 
+#ifdef _WIN32
+// InstallGC's path (CS:GO/TF2, as opposed to CS2's PreInstallGC/AfterSteamInit
+// above) never proactively connects the client GC: SteamInterfaceProxy::GetInterface
+// only constructs s_cs2GCProxy (and thus ClientGC) reactively, the first time the
+// game itself calls GetISteamGenericInterface("SteamGameCoordinator...") -- see the
+// #ifdef _WIN32 branch of GetInterface. For TF2 specifically, that call turns out to
+// be lazy: the engine doesn't request the GC interface until something inventory/
+// loadout-UI-related first touches it, so the "lost connection to the item server"
+// state doesn't clear until the player manually opens that panel. Mirror AfterSteamInit's
+// eager-connect-and-fake-hello trick here so the connection completes immediately
+// after Steam init instead of waiting on the game's own lazy request.
+static void EagerlyConnectClientGC()
+{
+    uint64_t steamId = SteamUser() ? SteamUser()->GetSteamID().ConvertToUint64() : 0;
+    if (!steamId)
+    {
+        Platform::Print("csgo_gc: EagerlyConnectClientGC: steamId is 0, skipping\n");
+        return;
+    }
+
+    if (!s_cs2GCProxy)
+    {
+        s_cs2GCProxy = new SteamGameCoordinatorProxy(steamId);
+        Platform::Print("csgo_gc: EagerlyConnectClientGC: created ClientGC eagerly, steamId=%llu\n",
+            (unsigned long long)steamId);
+    }
+
+    if (s_clientGC)
+    {
+        // Same 8-byte fake CMsgGCClientHello as AfterSteamInit: type is overridden by
+        // the explicit k_EMsgGCClientHello argument below, so only the 4-byte
+        // headerSize=0 field GCMessageRead actually reads needs to be present/zero.
+        static const uint8_t fakeHello[8] = { 0 };
+        s_clientGC->m_gc.PostToGC(GCEvent::Message, k_EMsgGCClientHello | 0x80000000u,
+            fakeHello, sizeof(fakeHello));
+        Platform::Print("csgo_gc: EagerlyConnectClientGC: posted fake GCClientHello\n");
+    }
+}
+#endif
+
 void SteamHookInstall(bool dedicated)
 {
     // thanks valve for ruining my life
@@ -3135,4 +3175,15 @@ void SteamHookInstall(bool dedicated)
     // from the real engine just reuse the cached session Valve's own code
     // already does internally (see docs/tf2_live_hook.md).
     InstallSteamClientHooks();
+
+#ifdef _WIN32
+    // Hooks are in place and Steam is fully initialized at this point (guaranteed
+    // by InitializeSteamAPI succeeding above), so the real steamId is already valid --
+    // connect the client GC now instead of waiting for the game to lazily request the
+    // GameCoordinator interface itself. See EagerlyConnectClientGC's comment.
+    if (!dedicated)
+    {
+        EagerlyConnectClientGC();
+    }
+#endif
 }

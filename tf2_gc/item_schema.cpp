@@ -41,6 +41,11 @@ void ItemSchemaTF2::ParseItems(const KeyValue &itemsKey)
         info.itemSlot = itemKey.GetString("item_slot");
         info.canBeUnusual = itemKey.GetNumber<uint32_t>("can_be_unusual") != 0;
 
+        uint32_t minLevel = itemKey.GetNumber<uint32_t>("min_ilevel");
+        uint32_t maxLevel = itemKey.GetNumber<uint32_t>("max_ilevel");
+        info.minLevel = minLevel != 0 ? minLevel : 1;
+        info.maxLevel = maxLevel != 0 ? maxLevel : info.minLevel;
+
         m_itemNameToDefIndex[info.name] = info.defIndex;
         m_items.emplace(info.defIndex, std::move(info));
     }

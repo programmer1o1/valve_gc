@@ -25,6 +25,13 @@ struct InventoryEntryTF2
     // ("is_australium_item") and visual style index 1 (see item_schema.h).
     bool isAustralium{};
 
+    // Copied from the schema's ItemInfo::minLevel. CSOEconItem.level must
+    // fall within the item's own [minLevel, maxLevel] or the real client
+    // rejects it as invalid and falls back to the class's default weapon
+    // for that slot -- many weapons require an exact non-1 level (e.g.
+    // Force-a-Nature needs exactly 10), so this can't be a fixed constant.
+    uint32_t itemLevel{ 1 };
+
     uint32_t count{};
 };
 

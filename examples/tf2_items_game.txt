@@ -1,11 +1,12 @@
 // Extended subset of TF2's items_game.txt for the tf2_gc schema parser.
-// Def indexes, item slots, and particle IDs below are all pulled directly
-// from a real TF2 install's tf/scripts/items/items_game.txt (2026-07-21) via
-// a KeyValues parser + tf_english.txt localization lookup, not hand-typed --
-// the first version of this file used fabricated/hallucinated numbers that
-// didn't exist in the real schema, which silently broke backpack display
-// (see docs/tf2_live_hook.md), so every entry here is independently verified
-// against the real schema rather than recalled from memory.
+// Def indexes, item slots, item levels, and particle IDs below are all
+// pulled directly from a real TF2 install's tf/scripts/items/items_game.txt
+// (2026-07-21) via a KeyValues parser + tf_english.txt localization lookup,
+// not hand-typed -- the first version of this file used fabricated/
+// hallucinated numbers that didn't exist in the real schema, which silently
+// broke backpack display (see docs/tf2_live_hook.md), so every entry here is
+// independently verified against the real schema rather than recalled from
+// memory.
 //
 // Includes every non-cosmetic-skin weapon each class can use (stock +
 // unlocks; War Paint/"Upgradeable" base items and per-skin War Paint variants
@@ -29,6 +30,13 @@
 // gc_client_tf2.cpp / inventory.cpp for how the "Australium " prefix in the
 // inventory file maps to these, alongside the "[effect]ItemName" bracket
 // notation for Unusuals).
+//
+// "min_ilevel"/"max_ilevel" only appear where a weapon's real schema entry
+// requires a level other than the default of 1 (e.g. Force-a-Nature needs
+// exactly 10) -- CSOEconItem.level must fall within these bounds or the real
+// client silently rejects the item and falls back to the class's default
+// weapon for that slot instead of equipping it (see item_schema.h/
+// inventory.cpp/gc_client_tf2.cpp for how this flows through to the wire).
 "items_game"
 {
 	"items"
@@ -223,42 +231,49 @@
 		{
 			"name"		"Kritzkrieg"
 			"item_slot"	"secondary"
+			"min_ilevel"	"8"
 		}
 
 		"36"
 		{
 			"name"		"Blutsauger"
 			"item_slot"	"primary"
+			"min_ilevel"	"5"
 		}
 
 		"37"
 		{
 			"name"		"Übersaw"
 			"item_slot"	"melee"
+			"min_ilevel"	"10"
 		}
 
 		"38"
 		{
 			"name"		"Axtinguisher"
 			"item_slot"	"melee"
+			"min_ilevel"	"10"
 		}
 
 		"39"
 		{
 			"name"		"Flare Gun"
 			"item_slot"	"secondary"
+			"min_ilevel"	"10"
 		}
 
 		"40"
 		{
 			"name"		"Backburner"
 			"item_slot"	"primary"
+			"min_ilevel"	"10"
 		}
 
 		"41"
 		{
 			"name"		"Natascha"
 			"item_slot"	"primary"
+			"min_ilevel"	"5"
 		}
 
 		"42"
@@ -271,24 +286,28 @@
 		{
 			"name"		"Killing Gloves of Boxing"
 			"item_slot"	"melee"
+			"min_ilevel"	"7"
 		}
 
 		"44"
 		{
 			"name"		"Sandman"
 			"item_slot"	"melee"
+			"min_ilevel"	"15"
 		}
 
 		"45"
 		{
 			"name"		"Force-a-Nature"
 			"item_slot"	"primary"
+			"min_ilevel"	"10"
 		}
 
 		"46"
 		{
 			"name"		"Bonk! Atomic Punch"
 			"item_slot"	"secondary"
+			"min_ilevel"	"5"
 		}
 
 		"49"
@@ -323,36 +342,42 @@
 		{
 			"name"		"Huntsman"
 			"item_slot"	"primary"
+			"min_ilevel"	"10"
 		}
 
 		"57"
 		{
 			"name"		"Razorback"
 			"item_slot"	"secondary"
+			"min_ilevel"	"10"
 		}
 
 		"58"
 		{
 			"name"		"Jarate"
 			"item_slot"	"secondary"
+			"min_ilevel"	"5"
 		}
 
 		"59"
 		{
 			"name"		"Dead Ringer"
 			"item_slot"	"pda2"
+			"min_ilevel"	"5"
 		}
 
 		"60"
 		{
 			"name"		"Cloak and Dagger"
 			"item_slot"	"pda2"
+			"min_ilevel"	"5"
 		}
 
 		"61"
 		{
 			"name"		"Ambassador"
 			"item_slot"	"secondary"
+			"min_ilevel"	"5"
 		}
 
 		"116"
@@ -360,6 +385,7 @@
 			"name"		"Ghastly Gibus"
 			"item_slot"	"head"
 			"can_be_unusual"	"1"
+			"min_ilevel"	"10"
 		}
 
 		"127"
@@ -372,18 +398,21 @@
 		{
 			"name"		"Equalizer"
 			"item_slot"	"melee"
+			"min_ilevel"	"10"
 		}
 
 		"129"
 		{
 			"name"		"Buff Banner"
 			"item_slot"	"secondary"
+			"min_ilevel"	"5"
 		}
 
 		"130"
 		{
 			"name"		"Scottish Resistance"
 			"item_slot"	"secondary"
+			"min_ilevel"	"5"
 		}
 
 		"131"
@@ -396,48 +425,56 @@
 		{
 			"name"		"Eyelander"
 			"item_slot"	"melee"
+			"min_ilevel"	"5"
 		}
 
 		"133"
 		{
 			"name"		"Gunboats"
 			"item_slot"	"secondary"
+			"min_ilevel"	"10"
 		}
 
 		"140"
 		{
 			"name"		"Wrangler"
 			"item_slot"	"secondary"
+			"min_ilevel"	"5"
 		}
 
 		"141"
 		{
 			"name"		"Frontier Justice"
 			"item_slot"	"primary"
+			"min_ilevel"	"5"
 		}
 
 		"142"
 		{
 			"name"		"Gunslinger"
 			"item_slot"	"melee"
+			"min_ilevel"	"15"
 		}
 
 		"153"
 		{
 			"name"		"Homewrecker"
 			"item_slot"	"melee"
+			"min_ilevel"	"5"
 		}
 
 		"154"
 		{
 			"name"		"Pain Train"
 			"item_slot"	"melee"
+			"min_ilevel"	"5"
 		}
 
 		"155"
 		{
 			"name"		"Southern Hospitality"
 			"item_slot"	"melee"
+			"min_ilevel"	"20"
 		}
 
 		"159"
@@ -450,12 +487,14 @@
 		{
 			"name"		"Lugermorph"
 			"item_slot"	"secondary"
+			"min_ilevel"	"5"
 		}
 
 		"161"
 		{
 			"name"		"Big Kill"
 			"item_slot"	"secondary"
+			"min_ilevel"	"5"
 		}
 
 		"162"
@@ -469,30 +508,35 @@
 		{
 			"name"		"Crit-a-Cola"
 			"item_slot"	"secondary"
+			"min_ilevel"	"5"
 		}
 
 		"169"
 		{
 			"name"		"Golden Wrench"
 			"item_slot"	"melee"
+			"min_ilevel"	"25"
 		}
 
 		"171"
 		{
 			"name"		"Tribalman's Shiv"
 			"item_slot"	"melee"
+			"min_ilevel"	"5"
 		}
 
 		"172"
 		{
 			"name"		"Scotsman's Skullcutter"
 			"item_slot"	"melee"
+			"min_ilevel"	"5"
 		}
 
 		"173"
 		{
 			"name"		"Vita-Saw"
 			"item_slot"	"melee"
+			"min_ilevel"	"5"
 		}
 
 		"194"
@@ -565,12 +609,14 @@
 		{
 			"name"		"Powerjack"
 			"item_slot"	"melee"
+			"min_ilevel"	"5"
 		}
 
 		"215"
 		{
 			"name"		"Degreaser"
 			"item_slot"	"primary"
+			"min_ilevel"	"10"
 		}
 
 		"220"
@@ -583,18 +629,21 @@
 		{
 			"name"		"Holy Mackerel"
 			"item_slot"	"melee"
+			"min_ilevel"	"42"
 		}
 
 		"222"
 		{
 			"name"		"Mad Milk"
 			"item_slot"	"secondary"
+			"min_ilevel"	"5"
 		}
 
 		"224"
 		{
 			"name"		"L'Étranger"
 			"item_slot"	"secondary"
+			"min_ilevel"	"5"
 		}
 
 		"225"
@@ -607,12 +656,14 @@
 		{
 			"name"		"Battalion's Backup"
 			"item_slot"	"secondary"
+			"min_ilevel"	"10"
 		}
 
 		"228"
 		{
 			"name"		"Black Box"
 			"item_slot"	"primary"
+			"min_ilevel"	"5"
 		}
 
 		"230"
@@ -625,12 +676,14 @@
 		{
 			"name"		"Darwin's Danger Shield"
 			"item_slot"	"secondary"
+			"min_ilevel"	"10"
 		}
 
 		"232"
 		{
 			"name"		"Bushwacka"
 			"item_slot"	"melee"
+			"min_ilevel"	"5"
 		}
 
 		"237"
@@ -643,12 +696,14 @@
 		{
 			"name"		"Gloves of Running Urgently"
 			"item_slot"	"melee"
+			"min_ilevel"	"10"
 		}
 
 		"264"
 		{
 			"name"		"Frying Pan"
 			"item_slot"	"melee"
+			"min_ilevel"	"5"
 		}
 
 		"265"
@@ -661,48 +716,56 @@
 		{
 			"name"		"Horseless Headless Horsemann's Headtaker"
 			"item_slot"	"melee"
+			"min_ilevel"	"5"
 		}
 
 		"297"
 		{
 			"name"		"Enthusiast's Timepiece"
 			"item_slot"	"pda2"
+			"min_ilevel"	"5"
 		}
 
 		"298"
 		{
 			"name"		"Iron Curtain"
 			"item_slot"	"primary"
+			"min_ilevel"	"5"
 		}
 
 		"304"
 		{
 			"name"		"Amputator"
 			"item_slot"	"melee"
+			"min_ilevel"	"15"
 		}
 
 		"305"
 		{
 			"name"		"Crusader's Crossbow"
 			"item_slot"	"primary"
+			"min_ilevel"	"15"
 		}
 
 		"307"
 		{
 			"name"		"Ullapool Caber"
 			"item_slot"	"melee"
+			"min_ilevel"	"10"
 		}
 
 		"308"
 		{
 			"name"		"Loch-n-Load"
 			"item_slot"	"primary"
+			"min_ilevel"	"10"
 		}
 
 		"310"
 		{
 			"name"		"Warrior's Spirit"
 			"item_slot"	"melee"
+			"min_ilevel"	"10"
 		}
 
 		"311"
@@ -715,72 +778,84 @@
 		{
 			"name"		"Brass Beast"
 			"item_slot"	"primary"
+			"min_ilevel"	"5"
 		}
 
 		"317"
 		{
 			"name"		"Candy Cane"
 			"item_slot"	"melee"
+			"min_ilevel"	"25"
 		}
 
 		"325"
 		{
 			"name"		"Boston Basher"
 			"item_slot"	"melee"
+			"min_ilevel"	"25"
 		}
 
 		"326"
 		{
 			"name"		"Back Scratcher"
 			"item_slot"	"melee"
+			"min_ilevel"	"10"
 		}
 
 		"327"
 		{
 			"name"		"Claidheamh Mòr"
 			"item_slot"	"melee"
+			"min_ilevel"	"5"
 		}
 
 		"329"
 		{
 			"name"		"Jag"
 			"item_slot"	"melee"
+			"min_ilevel"	"15"
 		}
 
 		"331"
 		{
 			"name"		"Fists of Steel"
 			"item_slot"	"melee"
+			"min_ilevel"	"10"
 		}
 
 		"348"
 		{
 			"name"		"Sharpened Volcano Fragment"
 			"item_slot"	"melee"
+			"min_ilevel"	"10"
 		}
 
 		"349"
 		{
 			"name"		"Sun-on-a-Stick"
 			"item_slot"	"melee"
+			"min_ilevel"	"10"
 		}
 
 		"351"
 		{
 			"name"		"Detonator"
 			"item_slot"	"secondary"
+			"min_ilevel"	"10"
 		}
 
 		"354"
 		{
 			"name"		"Concheror"
 			"item_slot"	"secondary"
+			"min_ilevel"	"5"
 		}
 
 		"355"
 		{
 			"name"		"Fan O'War"
 			"item_slot"	"melee"
+			"min_ilevel"	"5"
 		}
 
 		"356"
@@ -793,6 +868,7 @@
 		{
 			"name"		"Half-Zatoichi"
 			"item_slot"	"melee"
+			"min_ilevel"	"5"
 		}
 
 		"378"
@@ -806,90 +882,105 @@
 		{
 			"name"		"Shahanshah"
 			"item_slot"	"melee"
+			"min_ilevel"	"5"
 		}
 
 		"402"
 		{
 			"name"		"Bazaar Bargain"
 			"item_slot"	"primary"
+			"min_ilevel"	"10"
 		}
 
 		"404"
 		{
 			"name"		"Persian Persuader"
 			"item_slot"	"melee"
+			"min_ilevel"	"10"
 		}
 
 		"405"
 		{
 			"name"		"Ali Baba's Wee Booties"
 			"item_slot"	"primary"
+			"min_ilevel"	"10"
 		}
 
 		"406"
 		{
 			"name"		"Splendid Screen"
 			"item_slot"	"secondary"
+			"min_ilevel"	"10"
 		}
 
 		"411"
 		{
 			"name"		"Quick-Fix"
 			"item_slot"	"secondary"
+			"min_ilevel"	"8"
 		}
 
 		"412"
 		{
 			"name"		"Overdose"
 			"item_slot"	"primary"
+			"min_ilevel"	"5"
 		}
 
 		"413"
 		{
 			"name"		"Solemn Vow"
 			"item_slot"	"melee"
+			"min_ilevel"	"10"
 		}
 
 		"414"
 		{
 			"name"		"Liberty Launcher"
 			"item_slot"	"primary"
+			"min_ilevel"	"25"
 		}
 
 		"415"
 		{
 			"name"		"Reserve Shooter"
 			"item_slot"	"secondary"
+			"min_ilevel"	"10"
 		}
 
 		"416"
 		{
 			"name"		"Market Gardener"
 			"item_slot"	"melee"
+			"min_ilevel"	"10"
 		}
 
 		"423"
 		{
 			"name"		"Saxxy"
 			"item_slot"	"melee"
+			"min_ilevel"	"25"
 		}
 
 		"424"
 		{
 			"name"		"Tomislav"
 			"item_slot"	"primary"
+			"min_ilevel"	"5"
 		}
 
 		"425"
 		{
 			"name"		"Family Business"
 			"item_slot"	"secondary"
+			"min_ilevel"	"10"
 		}
 
 		"426"
 		{
 			"name"		"Eviction Notice"
 			"item_slot"	"melee"
+			"min_ilevel"	"10"
 		}
 
 		"433"
@@ -902,60 +993,70 @@
 		{
 			"name"		"Cow Mangler 5000"
 			"item_slot"	"primary"
+			"min_ilevel"	"30"
 		}
 
 		"442"
 		{
 			"name"		"Righteous Bison"
 			"item_slot"	"secondary"
+			"min_ilevel"	"30"
 		}
 
 		"444"
 		{
 			"name"		"Mantreads"
 			"item_slot"	"secondary"
+			"min_ilevel"	"10"
 		}
 
 		"447"
 		{
 			"name"		"Disciplinary Action"
 			"item_slot"	"melee"
+			"min_ilevel"	"10"
 		}
 
 		"448"
 		{
 			"name"		"Soda Popper"
 			"item_slot"	"primary"
+			"min_ilevel"	"10"
 		}
 
 		"449"
 		{
 			"name"		"Winger"
 			"item_slot"	"secondary"
+			"min_ilevel"	"15"
 		}
 
 		"450"
 		{
 			"name"		"Atomizer"
 			"item_slot"	"melee"
+			"min_ilevel"	"10"
 		}
 
 		"452"
 		{
 			"name"		"Three-Rune Blade"
 			"item_slot"	"melee"
+			"min_ilevel"	"10"
 		}
 
 		"457"
 		{
 			"name"		"Postal Pummeler"
 			"item_slot"	"melee"
+			"min_ilevel"	"10"
 		}
 
 		"460"
 		{
 			"name"		"Enforcer"
 			"item_slot"	"secondary"
+			"min_ilevel"	"5"
 		}
 
 		"461"
@@ -968,48 +1069,56 @@
 		{
 			"name"		"Maul"
 			"item_slot"	"melee"
+			"min_ilevel"	"5"
 		}
 
 		"474"
 		{
 			"name"		"Conscientious Objector"
 			"item_slot"	"melee"
+			"min_ilevel"	"25"
 		}
 
 		"482"
 		{
 			"name"		"Nessie's Nine Iron"
 			"item_slot"	"melee"
+			"min_ilevel"	"5"
 		}
 
 		"513"
 		{
 			"name"		"Original"
 			"item_slot"	"primary"
+			"min_ilevel"	"5"
 		}
 
 		"525"
 		{
 			"name"		"Diamondback"
 			"item_slot"	"secondary"
+			"min_ilevel"	"5"
 		}
 
 		"526"
 		{
 			"name"		"Machina"
 			"item_slot"	"primary"
+			"min_ilevel"	"5"
 		}
 
 		"527"
 		{
 			"name"		"Widowmaker"
 			"item_slot"	"primary"
+			"min_ilevel"	"5"
 		}
 
 		"528"
 		{
 			"name"		"Short Circuit"
 			"item_slot"	"secondary"
+			"min_ilevel"	"5"
 		}
 
 		"572"
@@ -1028,48 +1137,56 @@
 		{
 			"name"		"Apoco-Fists"
 			"item_slot"	"melee"
+			"min_ilevel"	"10"
 		}
 
 		"588"
 		{
 			"name"		"Pomson 6000"
 			"item_slot"	"primary"
+			"min_ilevel"	"10"
 		}
 
 		"589"
 		{
 			"name"		"Eureka Effect"
 			"item_slot"	"melee"
+			"min_ilevel"	"20"
 		}
 
 		"593"
 		{
 			"name"		"Third Degree"
 			"item_slot"	"melee"
+			"min_ilevel"	"10"
 		}
 
 		"594"
 		{
 			"name"		"Phlogistinator"
 			"item_slot"	"primary"
+			"min_ilevel"	"10"
 		}
 
 		"595"
 		{
 			"name"		"Manmelter"
 			"item_slot"	"secondary"
+			"min_ilevel"	"30"
 		}
 
 		"608"
 		{
 			"name"		"Bootlegger"
 			"item_slot"	"primary"
+			"min_ilevel"	"10"
 		}
 
 		"609"
 		{
 			"name"		"Scottish Handshake"
 			"item_slot"	"melee"
+			"min_ilevel"	"10"
 		}
 
 		"638"
@@ -1082,12 +1199,14 @@
 		{
 			"name"		"Cozy Camper"
 			"item_slot"	"secondary"
+			"min_ilevel"	"10"
 		}
 
 		"648"
 		{
 			"name"		"Wrap Assassin"
 			"item_slot"	"melee"
+			"min_ilevel"	"15"
 		}
 
 		"649"
@@ -1106,6 +1225,7 @@
 		{
 			"name"		"Holiday Punch"
 			"item_slot"	"melee"
+			"min_ilevel"	"10"
 		}
 
 		"658"
@@ -1190,12 +1310,14 @@
 		{
 			"name"		"Scorch Shot"
 			"item_slot"	"secondary"
+			"min_ilevel"	"10"
 		}
 
 		"741"
 		{
 			"name"		"Rainblower"
 			"item_slot"	"primary"
+			"min_ilevel"	"10"
 		}
 
 		"751"
@@ -1214,18 +1336,21 @@
 		{
 			"name"		"Baby Face's Blaster"
 			"item_slot"	"primary"
+			"min_ilevel"	"10"
 		}
 
 		"773"
 		{
 			"name"		"Pretty Boy's Pocket Pistol"
 			"item_slot"	"secondary"
+			"min_ilevel"	"10"
 		}
 
 		"775"
 		{
 			"name"		"Escape Plan"
 			"item_slot"	"melee"
+			"min_ilevel"	"10"
 		}
 
 		"792"
@@ -1382,6 +1507,7 @@
 		{
 			"name"		"Freedom Staff"
 			"item_slot"	"melee"
+			"min_ilevel"	"25"
 		}
 
 		"881"
@@ -1610,6 +1736,7 @@
 		{
 			"name"		"Bat Outta Hell"
 			"item_slot"	"melee"
+			"min_ilevel"	"5"
 		}
 
 		"947"
@@ -1622,6 +1749,7 @@
 		{
 			"name"		"Memory Maker"
 			"item_slot"	"melee"
+			"min_ilevel"	"50"
 		}
 
 		"957"
@@ -1736,6 +1864,7 @@
 		{
 			"name"		"Loose Cannon"
 			"item_slot"	"primary"
+			"min_ilevel"	"10"
 		}
 
 		"997"
@@ -1748,24 +1877,28 @@
 		{
 			"name"		"Vaccinator"
 			"item_slot"	"secondary"
+			"min_ilevel"	"8"
 		}
 
 		"999"
 		{
 			"name"		"Festive Holy Mackerel"
 			"item_slot"	"melee"
+			"min_ilevel"	"42"
 		}
 
 		"1000"
 		{
 			"name"		"Festive Axtinguisher"
 			"item_slot"	"melee"
+			"min_ilevel"	"10"
 		}
 
 		"1001"
 		{
 			"name"		"Festive Buff Banner"
 			"item_slot"	"secondary"
+			"min_ilevel"	"5"
 		}
 
 		"1002"
@@ -1778,24 +1911,28 @@
 		{
 			"name"		"Festive Übersaw"
 			"item_slot"	"melee"
+			"min_ilevel"	"10"
 		}
 
 		"1004"
 		{
 			"name"		"Festive Frontier Justice"
 			"item_slot"	"primary"
+			"min_ilevel"	"5"
 		}
 
 		"1005"
 		{
 			"name"		"Festive Huntsman"
 			"item_slot"	"primary"
+			"min_ilevel"	"10"
 		}
 
 		"1006"
 		{
 			"name"		"Festive Ambassador"
 			"item_slot"	"secondary"
+			"min_ilevel"	"5"
 		}
 
 		"1007"
@@ -1808,6 +1945,7 @@
 		{
 			"name"		"Ham Shank"
 			"item_slot"	"melee"
+			"min_ilevel"	"5"
 		}
 
 		"1071"
@@ -1874,6 +2012,7 @@
 		{
 			"name"		"Fortified Compound"
 			"item_slot"	"primary"
+			"min_ilevel"	"10"
 		}
 
 		"1098"
@@ -1934,12 +2073,14 @@
 		{
 			"name"		"Necro Smasher"
 			"item_slot"	"melee"
+			"min_ilevel"	"50"
 		}
 
 		"1127"
 		{
 			"name"		"Crossing Guard"
 			"item_slot"	"melee"
+			"min_ilevel"	"25"
 		}
 
 		"1141"
@@ -1970,6 +2111,7 @@
 		{
 			"name"		"Festive Bonk! Atomic Punch"
 			"item_slot"	"secondary"
+			"min_ilevel"	"5"
 		}
 
 		"1146"
@@ -2036,30 +2178,35 @@
 		{
 			"name"		"Reissued Lugermorph"
 			"item_slot"	"secondary"
+			"min_ilevel"	"5"
 		}
 
 		"1205"
 		{
 			"name"		"Reissued Enthusiast's Timepiece"
 			"item_slot"	"pda2"
+			"min_ilevel"	"5"
 		}
 
 		"1206"
 		{
 			"name"		"Reissued Iron Curtain"
 			"item_slot"	"primary"
+			"min_ilevel"	"5"
 		}
 
 		"30474"
 		{
 			"name"		"Nostromo Napalmer"
 			"item_slot"	"primary"
+			"min_ilevel"	"10"
 		}
 
 		"30665"
 		{
 			"name"		"Shooting Star"
 			"item_slot"	"primary"
+			"min_ilevel"	"5"
 		}
 
 		"30666"
@@ -2078,12 +2225,14 @@
 		{
 			"name"		"Giger Counter"
 			"item_slot"	"secondary"
+			"min_ilevel"	"5"
 		}
 
 		"30758"
 		{
 			"name"		"Prinny Machete"
 			"item_slot"	"melee"
+			"min_ilevel"	"5"
 		}
 	}
 

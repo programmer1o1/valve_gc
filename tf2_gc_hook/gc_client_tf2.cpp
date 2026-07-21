@@ -95,15 +95,15 @@ static void BuildEconItem(const InventoryEntryTF2 &entry, uint64_t itemId, uint3
     item.set_inventory(static_cast<uint32_t>(itemId));
     item.set_def_index(entry.defIndex);
     item.set_quantity(1);
-    // Unusual-quality items are always level 10 in TF2's real schema
-    // regardless of the base item (confirmed: Ghastly Gibus's real
-    // items_game.txt entry requires min_ilevel/max_ilevel = 10). Hardcoding
-    // level 1 for everything was likely making Unusual items fail
-    // client-side level-bounds validation. Non-Unusual items default to
-    // level 1 here since our minimal test schema doesn't track per-item
-    // ilevel bounds; if this fixes Unusuals but not plain items, that's
-    // the next place to look.
-    item.set_level(entry.hasParticle ? 10 : 1);
+    // CSOEconItem.level must fall within the item's own real [min_ilevel,
+    // max_ilevel] bounds or the client silently rejects it as invalid --
+    // confirmed by a live test where equipping any of ~140 weapons that
+    // require an exact non-1 level (e.g. Force-a-Nature needs exactly 10,
+    // Sandman needs exactly 15) just fell back to the class's default
+    // weapon instead. entry.itemLevel carries the correct per-item value
+    // (schema-driven, see item_schema.h/inventory.cpp), already accounting
+    // for Unusual's separate always-level-10 rule.
+    item.set_level(entry.itemLevel);
     item.set_quality(entry.quality);
     item.set_flags(0);
     item.set_origin(ItemOriginBaseItemTF2);
