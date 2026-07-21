@@ -468,6 +468,22 @@ void ClientGCTF2::OnAdjustItemEquippedState(GCMessageRead &messageRead)
     // AdjustItemEquippedState -- otherwise the equip change never reaches
     // ServerGCTF2, so it never gets applied on the loadout screen/in-game.
     SendMessageToGame(/*sendToGameServer=*/true, k_ESOMsg_UpdateMultiple, update);
+
+    // Belt-and-suspenders: also resend the full equipped-only snapshot via
+    // the exact same path HandleSOCacheRequest uses at initial connect --
+    // that one is confirmed, in every live test so far, to always show up
+    // correctly in-game. The incremental k_ESOMsg_UpdateMultiple above is
+    // the theoretically "correct"/lighter-weight way to convey an equip
+    // change, but repeated live tests show equip changes made *after* the
+    // initial connect snapshot don't visibly apply even though every layer
+    // of this hook demonstrably delivers them intact -- the actual
+    // client-side GCSDK object-cache diff/merge logic that turns incremental
+    // updates into a CPlayerInventory update is closed-source (not in the
+    // public Steamworks SDK or the leaked TF2 game source), so this can't be
+    // debugged further from here. Resending the full snapshot on every equip
+    // isn't the "correct" approach but re-triggers the one code path already
+    // proven to work, at the cost of a slightly heavier resend each time.
+    HandleSOCacheRequest();
 }
 
 void ClientGCTF2::SaveEquippedState() const
