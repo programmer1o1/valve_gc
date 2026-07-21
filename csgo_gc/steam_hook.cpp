@@ -2588,11 +2588,22 @@ static void Hk_SteamAPI_RunCallbacks()
                 if (s_serverGC)
                 {
                     uint64_t steamId = SteamUser() ? SteamUser()->GetSteamID().ConvertToUint64() : 0;
+                    Platform::Print("csgo_gc: HostEvent::NetMessage, s_serverGC=%p, delivering in-process (size=%u)\n",
+                        (void *)s_serverGC, (unsigned)event.buffer.size());
                     s_serverGC->m_gc.PostToGC(GCEvent::NetMessage, steamId,
                         event.buffer.data(), static_cast<uint32_t>(event.buffer.size()));
                 }
                 else
                 {
+                    // DIAGNOSTIC: if this fires for a message posted after the
+                    // server GC visibly exists in the log, that's the bug --
+                    // this branch silently drops the message for offline/
+                    // listen-server games (see comment above), so seeing it
+                    // fire here at all outside of the earliest connection
+                    // window is itself the finding, not just a log line.
+                    Platform::Print("csgo_gc: HostEvent::NetMessage, s_serverGC=NULL, falling back to P2P "
+                        "SendMessage (size=%u) -- silently dropped for offline games!\n",
+                        (unsigned)event.buffer.size());
                     s_clientGC->m_networking.SendMessage(event.buffer.data(), static_cast<uint32_t>(event.buffer.size()));
                 }
                 break;
